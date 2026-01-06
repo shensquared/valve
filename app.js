@@ -348,9 +348,10 @@ function renderSchedule() {
       );
 
     // Calculate rows for this week (Spring Break has no date row, just label)
+    const hasEvents = activeEventTypes.length > 0;
     const rowsPerWeek = isSpringBreakWeek
       ? 1
-      : 1 + (hasLabelContent ? 1 : 0) + activeEventTypes.length;
+      : 1 + (hasLabelContent ? 1 : 0) + (hasEvents ? 1 : 0);
 
     // Date row (skip for Spring Break)
     if (!isSpringBreakWeek) {
@@ -481,48 +482,58 @@ function renderSchedule() {
       tbody.appendChild(labelRow);
     }
 
-    // Event rows
-    activeEventTypes.forEach(eventType => {
-      const eventRow = document.createElement('tr');
-      eventRow.className = 'event-row';
-      const selectedDays = eventDays[eventType];
+    // Event row (skip for Spring Break week)
+    if (isSpringBreakWeek) return;
+    if (activeEventTypes.length === 0) return;
 
-      dayInfo.forEach(({ dayIndex, holiday, beforeClasses, afterClasses, afterEndDate }) => {
-        const td = document.createElement('td');
-        let effectiveDayKey = Object.keys(dayIndexMap).find(k => dayIndexMap[k] === dayIndex);
+    const eventRow = document.createElement('tr');
+    eventRow.className = 'event-row';
 
-        // Monday Schedule Shift: treat this day as Monday
-        if (holiday?.name === 'Monday Schedule Shift') {
-          effectiveDayKey = 'M';
-        }
+    dayInfo.forEach(({ dayIndex, holiday, beforeClasses, afterClasses, afterEndDate }) => {
+      const td = document.createElement('td');
+      let effectiveDayKey = Object.keys(dayIndexMap).find(k => dayIndexMap[k] === dayIndex);
 
-        // No events before or after class period, or after calendar end
-        if (beforeClasses || afterClasses || afterEndDate) {
-          eventRow.appendChild(td);
-          return;
-        }
+      // Monday Schedule Shift: treat this day as Monday
+      if (holiday?.name === 'Monday Schedule Shift') {
+        effectiveDayKey = 'M';
+      }
 
-        if (selectedDays.has(effectiveDayKey)) {
-          const inSpringBreak = isInSpringBreak(dayInfo[dayIndex].day.dateStr);
-          if ((holiday && holiday.name !== 'Monday Schedule Shift') || inSpringBreak) {
-            // Holiday or Spring Break - no class (but Monday Shift still has class)
-            td.textContent = '';
-          } else {
-            // Show numbered event
+      // No events before or after class period, or after calendar end
+      if (beforeClasses || afterClasses || afterEndDate) {
+        eventRow.appendChild(td);
+        return;
+      }
+
+      const inSpringBreak = isInSpringBreak(dayInfo[dayIndex].day.dateStr);
+      const isHoliday = holiday && holiday.name !== 'Monday Schedule Shift';
+
+      // Collect all events for this day
+      const dayEvents = [];
+      activeEventTypes.forEach(eventType => {
+        if (eventDays[eventType].has(effectiveDayKey)) {
+          if (!isHoliday && !inSpringBreak) {
             const label = eventType.charAt(0).toUpperCase() + eventType.slice(1);
-            td.textContent = `${label} ${eventCounters[eventType]}`;
+            dayEvents.push({
+              text: `${label} ${eventCounters[eventType]}`,
+              color: resolveColor(colors?.events?.[eventType]) || colors?.events?.[eventType],
+              type: eventType
+            });
             eventCounters[eventType]++;
-            // Apply event color
-            const eventColor = resolveColor(colors?.events?.[eventType]) || colors?.events?.[eventType];
-            if (eventColor) {
-              td.style.backgroundColor = eventColor;
-            }
           }
         }
-        eventRow.appendChild(td);
       });
-      tbody.appendChild(eventRow);
+
+      if (dayEvents.length > 0) {
+        // Use first event's color as background
+        if (dayEvents[0].color) {
+          td.style.backgroundColor = dayEvents[0].color;
+        }
+        td.textContent = dayEvents.map(e => e.text).join(' / ');
+      }
+
+      eventRow.appendChild(td);
     });
+    tbody.appendChild(eventRow);
 
   });
 }
