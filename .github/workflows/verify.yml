@@ -1,0 +1,20 @@
+name: Verify Semesters
+
+on:
+  push:
+    paths: ['semesters/*.json']
+  pull_request:
+    paths: ['semesters/*.json']
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify keys
+        run: python verifiers/verify_keys.py --semester all
+      - name: Verify class days
+        run: python verifiers/verify_classdays.py --semester all
