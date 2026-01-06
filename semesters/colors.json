@@ -2,7 +2,6 @@
   "palettes": {
     "mit": {
       "red": "#750014",
-      "brightRed": "#FF1423",
       "gray": "#8b959e"
     },
     "eecs": {
