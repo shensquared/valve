@@ -350,11 +350,26 @@ function renderSchedule() {
         !beforeClasses && !afterEndDate && labels.length > 0
       );
 
+    // Check if any selected days would have classes this week
+    const hasScheduledClasses = activeEventTypes.length > 0 && dayInfo.some(({ dayIndex, holiday, beforeClasses, afterClasses, afterEndDate }) => {
+      if (beforeClasses || afterClasses || afterEndDate) return false;
+
+      let effectiveDayKey = Object.keys(dayIndexMap).find(k => dayIndexMap[k] === dayIndex);
+      if (holiday?.name === 'Monday Schedule Shift') {
+        effectiveDayKey = 'M';
+      }
+
+      const isHoliday = holiday && holiday.name !== 'Monday Schedule Shift';
+      const inSpringBreak = isInSpringBreak(dayInfo[dayIndex].day.dateStr);
+      if (isHoliday || inSpringBreak) return false;
+
+      return activeEventTypes.some(eventType => eventDays[eventType].has(effectiveDayKey));
+    });
+
     // Calculate rows for this week (Spring Break has no date row, just label)
-    const hasEvents = activeEventTypes.length > 0;
     const rowsPerWeek = isSpringBreakWeek
       ? 1
-      : 1 + (hasLabelContent ? 1 : 0) + (hasEvents ? 1 : 0);
+      : 1 + (hasLabelContent ? 1 : 0) + (hasScheduledClasses ? 1 : 0);
 
     // Date row (skip for Spring Break)
     if (!isSpringBreakWeek) {
@@ -486,15 +501,8 @@ function renderSchedule() {
       tbody.appendChild(labelRow);
     }
 
-    // Event row (skip for Spring Break week or weeks with no class days)
-    if (isSpringBreakWeek) return;
-    if (activeEventTypes.length === 0) return;
-
-    // Skip if all days are before/after class period
-    const hasClassDays = dayInfo.some(({ beforeClasses, afterClasses, afterEndDate }) =>
-      !beforeClasses && !afterClasses && !afterEndDate
-    );
-    if (!hasClassDays) return;
+    // Event row (skip if no scheduled classes this week)
+    if (!hasScheduledClasses) return;
 
     const eventRow = document.createElement('tr');
     eventRow.className = 'event-row';
