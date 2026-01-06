@@ -417,6 +417,18 @@
       return currentSemester.holidays.find(h => h.date === dateStr);
     }
 
+    function isInSpringBreak(dateStr) {
+      if (!currentSemester?.holidays) return false;
+      const startHoliday = currentSemester.holidays.find(h =>
+        h.name.toLowerCase().includes('spring break start')
+      );
+      const endHoliday = currentSemester.holidays.find(h =>
+        h.name.toLowerCase().includes('spring break end')
+      );
+      if (!startHoliday || !endHoliday) return false;
+      return dateStr >= startHoliday.date && dateStr <= endHoliday.date;
+    }
+
     function isInFinalPeriod(dateStr) {
       if (!currentSemester?.finalPeriodStart || !currentSemester?.finalPeriodEnd) return false;
       return dateStr >= currentSemester.finalPeriodStart && dateStr <= currentSemester.finalPeriodEnd;
@@ -732,8 +744,9 @@
             }
 
             if (selectedDays.has(effectiveDayKey)) {
-              if (holiday && holiday.name !== 'Monday Schedule Shift') {
-                // Holiday - no class (but Monday Shift still has class)
+              const inSpringBreak = isInSpringBreak(dayInfo[dayIndex].day.dateStr);
+              if ((holiday && holiday.name !== 'Monday Schedule Shift') || inSpringBreak) {
+                // Holiday or Spring Break - no class (but Monday Shift still has class)
                 td.textContent = '';
               } else {
                 // Show numbered event
