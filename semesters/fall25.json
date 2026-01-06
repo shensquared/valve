@@ -1,0 +1,43 @@
+{
+  "name": "Fall 2025",
+  "firstMonday": "2025-09-01",
+  "startDate": "2025-09-03",
+  "addDate": "2025-10-03",
+  "dropDate": "2025-11-19",
+  "lastDueHasFinal": "2025-12-05",
+  "lastClassDate": "2025-12-10",
+  "finalPeriodStart": "2025-12-15",
+  "finalPeriodEnd": "2025-12-19",
+  "gradesDueNoFinal": "2025-12-16",
+  "gradesDueHasFinal": "2026-01-07",
+  "holidays": [
+    {
+      "date": "2025-09-01",
+      "name": "Labor Day"
+    },
+    {
+      "date": "2025-09-19",
+      "name": "Student Holiday"
+    },
+    {
+      "date": "2025-10-13",
+      "name": "Indigenous Peoples' Day"
+    },
+    {
+      "date": "2025-11-10",
+      "name": "Student Holiday"
+    },
+    {
+      "date": "2025-11-11",
+      "name": "Veterans Day"
+    },
+    {
+      "date": "2025-11-27",
+      "name": "Thanksgiving Holiday"
+    },
+    {
+      "date": "2025-11-28",
+      "name": "Thanksgiving Holiday"
+    }
+  ]
+}
