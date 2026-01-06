@@ -1,0 +1,13 @@
+name: Deploy to Portal
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deploy webhook
+        run: |
+          curl -X POST https://shenshen.mit.edu/hooks/valve-deploy
