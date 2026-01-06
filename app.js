@@ -279,6 +279,9 @@ function renderSchedule() {
     recitation: 1
   };
 
+  // Track display week number (skips Spring Break)
+  let displayWeekNum = 1;
+
   weeks.forEach(week => {
     // Collect day info
     const dayInfo = week.days.map((day, dayIndex) => {
@@ -360,7 +363,7 @@ function renderSchedule() {
       const weekTd = document.createElement('td');
       weekTd.className = 'week-header';
       weekTd.rowSpan = rowsPerWeek;
-      weekTd.textContent = week.number;
+      weekTd.textContent = displayWeekNum;
       dateRow.appendChild(weekTd);
       dayInfo.forEach(({ day, beforeClasses, afterEndDate, dateRowLabels }) => {
         const td = document.createElement('td');
@@ -380,6 +383,7 @@ function renderSchedule() {
         dateRow.appendChild(td);
       });
       tbody.appendChild(dateRow);
+      displayWeekNum++;
     }
 
     // Label row (holidays/milestones) - only if there's content
@@ -388,11 +392,11 @@ function renderSchedule() {
       labelRow.className = 'label-row';
 
       if (isSpringBreakWeek) {
-        // Add week header for Spring Break row
+        // Add week header for Spring Break row (no number, just dash)
         const weekTd = document.createElement('td');
         weekTd.className = 'week-header';
         weekTd.rowSpan = 1;
-        weekTd.textContent = week.number;
+        weekTd.textContent = '-';
         labelRow.appendChild(weekTd);
 
         // Get date range from first and last day of week
@@ -534,6 +538,5 @@ function renderSchedule() {
       eventRow.appendChild(td);
     });
     tbody.appendChild(eventRow);
-
   });
 }
