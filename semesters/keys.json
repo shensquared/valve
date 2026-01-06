@@ -1,0 +1,29 @@
+{
+  "dates": {
+    "required": [
+      "firstMonday",
+      "startDate",
+      "addDate",
+      "dropDate",
+      "lastDueHasFinal",
+      "lastDueNoFinal",
+      "lastClassDate",
+      "finalPeriodStart",
+      "finalPeriodEnd"
+    ]
+  },
+  "holidays": {
+    "common": [],
+    "fall": [
+      "Labor Day",
+      "Indigenous Peoples' Day",
+      "Veterans Day",
+      "Thanksgiving"
+    ],
+    "spring": [
+      "Presidents' Day",
+      "Spring vacation",
+      "Patriots' Day"
+    ]
+  },
+}
