@@ -46,6 +46,7 @@
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       overflow-x: auto;
+      min-width: 800px;
     }
 
     table {
@@ -53,17 +54,27 @@
       border-collapse: collapse;
       min-width: 600px;
       border: 2px solid #333;
+      table-layout: fixed;
     }
 
     th, td {
       padding: 10px;
       text-align: center;
+      overflow: hidden;
     }
 
     th {
       background: #f8f9fa;
       font-weight: 600;
       border: 2px solid #333;
+    }
+
+    th:first-child {
+      width: 60px;
+    }
+
+    th:not(:first-child) {
+      width: calc((100% - 60px) / 5);
     }
 
     .week-header {
@@ -164,6 +175,35 @@
     .none-btn {
       border-style: dashed;
     }
+
+    .toggle-buttons {
+      display: flex;
+      gap: 0;
+    }
+
+    .toggle-btn {
+      padding: 6px 12px;
+      font-size: 13px;
+      border: 1px solid #ccc;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+
+    .toggle-btn:last-child {
+      border-radius: 0 4px 4px 0;
+      border-left: none;
+    }
+
+    .toggle-btn.active {
+      background: #333;
+      color: white;
+      border-color: #333;
+    }
   </style>
 </head>
 <body>
@@ -176,6 +216,13 @@
       <label>Term</label>
       <select id="semesterSelect">
       </select>
+    </div>
+    <div class="control-group">
+      <label>Has Final?</label>
+      <div class="toggle-buttons">
+        <button class="toggle-btn active" data-value="yes">Yes</button>
+        <button class="toggle-btn" data-value="no">No</button>
+      </div>
     </div>
     <div class="control-group">
       <table class="day-matrix">
@@ -253,6 +300,7 @@
 
     let colors = null;
     let currentSemester = null;
+    let hasFinal = true;
     let eventDays = {
       lecture: new Set(),
       lab: new Set(),
@@ -311,6 +359,16 @@
           renderSchedule();
         });
       });
+
+      // Has Final toggle logic
+      document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          hasFinal = btn.dataset.value === 'yes';
+          renderSchedule();
+        });
+      });
     });
 
     async function loadSemester(path) {
@@ -342,6 +400,13 @@
       const end = new Date(lastClassDate + 'T00:00:00');
       let weekNum = 1;
 
+      // Validate firstMonday is actually a Monday (0=Sun, 1=Mon, ...)
+      if (current.getDay() !== 1) {
+        const dayName = current.toLocaleDateString('en-US', { weekday: 'long' });
+        console.error(`firstMonday (${firstMonday}) is a ${dayName}, not Monday!`);
+        alert(`Warning: firstMonday (${firstMonday}) is a ${dayName}, not Monday!`);
+      }
+
       while (current <= end) {
         const week = { number: weekNum, days: [] };
         for (let i = 0; i < 5; i++) {
@@ -364,14 +429,37 @@
       return currentSemester.holidays.find(h => h.date === dateStr);
     }
 
+    function isInFinalPeriod(dateStr) {
+      if (!currentSemester?.finalPeriodStart || !currentSemester?.finalPeriodEnd) return false;
+      return dateStr >= currentSemester.finalPeriodStart && dateStr <= currentSemester.finalPeriodEnd;
+    }
+
+    function isAfterClasses(dateStr) {
+      if (!currentSemester?.lastClassDate) return false;
+      return dateStr > currentSemester.lastClassDate;
+    }
+
     function getDateLabels(dateStr) {
       if (!currentSemester || !colors) return [];
       const labels = [];
       const dateKeys = Object.keys(colors.dates);
       for (const key of dateKeys) {
         if (currentSemester[key] === dateStr) {
+          // Filter based on hasFinal toggle
+          if (hasFinal) {
+            // Show HasFinal dates, hide NoFinal dates
+            if (key === 'gradesDueNoFinal') continue;
+          } else {
+            // Show NoFinal dates, hide HasFinal/final period dates
+            if (key === 'lastDueHasFinal' || key === 'gradesDueHasFinal') continue;
+            if (key === 'finalPeriodStart' || key === 'finalPeriodEnd') continue;
+          }
           labels.push(key);
         }
+      }
+      // When no final, lastClassDate is also the last due date
+      if (!hasFinal && dateStr === currentSemester.lastClassDate) {
+        labels.push('lastDueDate');
       }
       return labels;
     }
@@ -435,7 +523,8 @@
       const tbody = document.getElementById('scheduleBody');
       tbody.innerHTML = '';
 
-      const weeks = generateWeeks(currentSemester.firstMonday, currentSemester.lastClassDate);
+      const endDate = hasFinal ? currentSemester.finalPeriodEnd : currentSemester.gradesDueNoFinal;
+      const weeks = generateWeeks(currentSemester.firstMonday, endDate);
       const activeEventTypes = getActiveEventTypes();
       const rowsPerWeek = 2 + activeEventTypes.length; // date + label + event rows
 
@@ -451,6 +540,8 @@
         const dayInfo = week.days.map((day, dayIndex) => {
           const holiday = getHoliday(day.dateStr);
           const dateLabels = getDateLabels(day.dateStr);
+          const inFinals = isInFinalPeriod(day.dateStr);
+          const afterClasses = isAfterClasses(day.dateStr);
           let bgColor = null;
           let textColor = null;
           let labels = [];
@@ -458,6 +549,12 @@
           if (holiday) {
             bgColor = getHolidayColor(holiday);
             labels.push(holiday.name);
+          }
+
+          // Mark final exam period (only if class has a final)
+          if (inFinals && hasFinal) {
+            labels.push('Finals');
+            if (!bgColor) bgColor = '#fff3cd';  // Light yellow for finals
           }
 
           // Check date labels for High (bg) or Medium (text)
@@ -471,7 +568,7 @@
             labels.push(formatLabel(label));
           }
 
-          return { day, dayIndex, holiday, bgColor, textColor, labels };
+          return { day, dayIndex, holiday, inFinals, afterClasses, bgColor, textColor, labels };
         });
 
         // Date row
@@ -485,6 +582,10 @@
         dayInfo.forEach(({ day }) => {
           const td = document.createElement('td');
           td.textContent = day.display;
+          const dateColor = resolveColor(colors?.date) || colors?.date;
+          if (dateColor) {
+            td.style.backgroundColor = dateColor;
+          }
           dateRow.appendChild(td);
         });
         tbody.appendChild(dateRow);
@@ -507,13 +608,19 @@
           eventRow.className = 'event-row';
           const selectedDays = eventDays[eventType];
 
-          dayInfo.forEach(({ dayIndex, holiday }) => {
+          dayInfo.forEach(({ dayIndex, holiday, afterClasses }) => {
             const td = document.createElement('td');
             let effectiveDayKey = Object.keys(dayIndexMap).find(k => dayIndexMap[k] === dayIndex);
 
             // Monday Schedule Shift: treat this day as Monday
             if (holiday?.name === 'Monday Schedule Shift') {
               effectiveDayKey = 'M';
+            }
+
+            // No events after classes end
+            if (afterClasses) {
+              eventRow.appendChild(td);
+              return;
             }
 
             if (selectedDays.has(effectiveDayKey)) {
@@ -525,6 +632,11 @@
                 const label = eventType.charAt(0).toUpperCase() + eventType.slice(1);
                 td.textContent = `${label} ${eventCounters[eventType]}`;
                 eventCounters[eventType]++;
+                // Apply event color
+                const eventColor = resolveColor(colors?.events?.[eventType]) || colors?.events?.[eventType];
+                if (eventColor) {
+                  td.style.backgroundColor = eventColor;
+                }
               }
             }
             eventRow.appendChild(td);
