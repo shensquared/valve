@@ -57,23 +57,24 @@
       table-layout: fixed;
     }
 
-    th, td {
+    #scheduleTable th,
+    #scheduleTable td {
       padding: 10px;
       text-align: center;
       overflow: hidden;
     }
 
-    th {
+    #scheduleTable th {
       background: #f8f9fa;
       font-weight: 600;
       border: 2px solid #333;
     }
 
-    th:first-child {
+    #scheduleTable th:first-child {
       width: 60px;
     }
 
-    th:not(:first-child) {
+    #scheduleTable th:not(:first-child) {
       width: calc((100% - 60px) / 5);
     }
 
@@ -133,6 +134,7 @@
 
     .day-matrix {
       border-collapse: collapse;
+      overflow: visible;
     }
 
     .day-matrix th,
@@ -151,6 +153,7 @@
       font-weight: 600;
       text-align: right;
       padding-right: 12px;
+      white-space: nowrap;
     }
 
     .day-btn {
