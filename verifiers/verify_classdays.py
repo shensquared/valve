@@ -45,6 +45,45 @@ def get_season(semester):
     return None
 
 
+def expand_spring_break(holidays):
+    """Expand Spring Break Start/End into all days in between."""
+    start_holiday = None
+    end_holiday = None
+
+    for h in holidays:
+        name_lower = h['name'].lower()
+        if 'spring break' in name_lower and 'start' in name_lower:
+            start_holiday = h
+        elif 'spring break' in name_lower and 'end' in name_lower:
+            end_holiday = h
+
+    if not start_holiday or not end_holiday:
+        return holidays
+
+    # Generate all dates between start and end
+    start_dt = datetime.strptime(start_holiday['date'], '%Y-%m-%d')
+    end_dt = datetime.strptime(end_holiday['date'], '%Y-%m-%d')
+
+    expanded = []
+    for h in holidays:
+        name_lower = h['name'].lower()
+        # Skip the original start/end markers, we'll add the full range
+        if 'spring break' in name_lower and ('start' in name_lower or 'end' in name_lower):
+            continue
+        expanded.append(h)
+
+    # Add all days in range
+    current = start_dt
+    while current <= end_dt:
+        expanded.append({
+            'date': current.strftime('%Y-%m-%d'),
+            'name': 'Spring Break'
+        })
+        current += timedelta(days=1)
+
+    return expanded
+
+
 def count_class_days(start_date, end_date, holidays):
     """Count class days by weekday, excluding holidays.
 
@@ -53,6 +92,9 @@ def count_class_days(start_date, end_date, holidays):
     """
     start = datetime.strptime(start_date, '%Y-%m-%d')
     end = datetime.strptime(end_date, '%Y-%m-%d')
+
+    # Expand Spring Break range if using Start/End format
+    holidays = expand_spring_break(holidays)
 
     # Find schedule substitutions from holidays
     # e.g., "Monday Schedule Shift" or "Monday schedule of classes"
@@ -225,7 +267,8 @@ def verify_semester(semester, json_path, keys):
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    semesters_dir = os.path.join(script_dir, 'semesters')
+    root_dir = os.path.dirname(script_dir)
+    semesters_dir = os.path.join(root_dir, 'semesters')
     keys_path = os.path.join(semesters_dir, 'keys.json')
 
     # Discover available semesters

@@ -107,7 +107,8 @@ def verify_semester(semester, json_path, keys):
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    semesters_dir = os.path.join(script_dir, 'semesters')
+    root_dir = os.path.dirname(script_dir)
+    semesters_dir = os.path.join(root_dir, 'semesters')
     keys_path = os.path.join(semesters_dir, 'keys.json')
 
     # Discover available semesters
