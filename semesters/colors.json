@@ -1,7 +1,8 @@
 {
   "palettes": {
     "mit": {
-      "red": "#750014",
+      "red": "#E8927C",
+      "red-light": "#F2D4D8",
       "gray": "#8b959e"
     },
     "eecs": {
