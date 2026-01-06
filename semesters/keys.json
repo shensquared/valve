@@ -6,10 +6,11 @@
       "addDate",
       "dropDate",
       "lastDueHasFinal",
-      "lastDueNoFinal",
       "lastClassDate",
       "finalPeriodStart",
-      "finalPeriodEnd"
+      "finalPeriodEnd",
+      "gradesDueNoFinal",
+      "gradesDueHasFinal"
     ]
   },
   "holidays": {
@@ -18,11 +19,14 @@
       "Labor Day",
       "Indigenous Peoples' Day",
       "Veterans Day",
-      "Thanksgiving"
+      "Thanksgiving Holiday",
+      "Student Holiday"
     ],
     "spring": [
       "Presidents' Day",
-      "Spring vacation",
+      "Spring Break Start",
+      "Spring Break End",
+      "Monday Schedule Shift",
       "Patriots' Day"
     ]
   },
