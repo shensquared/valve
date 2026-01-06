@@ -91,6 +91,14 @@
       vertical-align: middle;
     }
 
+    .event-row td {
+      font-size: 12px;
+      min-height: 30px;
+      height: 30px;
+      vertical-align: middle;
+      background: #fafafa;
+    }
+
     .controls {
       display: flex;
       gap: 30px;
@@ -160,7 +168,7 @@
 </head>
 <body>
   <div class="header">
-    <h1>Valve</h1>
+    <img src="logo.png" alt="MIT Valve" height="100">
   </div>
 
   <div class="controls">
@@ -245,6 +253,11 @@
 
     let colors = null;
     let currentSemester = null;
+    let eventDays = {
+      lecture: new Set(),
+      lab: new Set(),
+      recitation: new Set()
+    };
 
     document.addEventListener('DOMContentLoaded', async () => {
       // Load colors
@@ -279,15 +292,23 @@
       document.querySelectorAll('.day-matrix .day-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const row = btn.closest('tr');
+          const eventType = row.dataset.event;
           const day = btn.dataset.day;
           if (day === 'none') {
             // Clear all days in this row
             row.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+            eventDays[eventType].clear();
           } else {
             // Deselect "None" for this row
             row.querySelector('.none-btn').classList.remove('active');
             btn.classList.toggle('active');
+            if (btn.classList.contains('active')) {
+              eventDays[eventType].add(day);
+            } else {
+              eventDays[eventType].delete(day);
+            }
           }
+          renderSchedule();
         });
       });
     });
@@ -396,6 +417,14 @@
       return key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
     }
 
+    const dayIndexMap = { M: 0, T: 1, W: 2, R: 3, F: 4 };
+
+    function getActiveEventTypes() {
+      return Object.entries(eventDays)
+        .filter(([_, days]) => days.size > 0)
+        .map(([type, _]) => type);
+    }
+
     function renderSchedule() {
       if (!currentSemester) {
         console.error('No current semester');
@@ -407,10 +436,19 @@
       tbody.innerHTML = '';
 
       const weeks = generateWeeks(currentSemester.firstMonday, currentSemester.lastClassDate);
+      const activeEventTypes = getActiveEventTypes();
+      const rowsPerWeek = 2 + activeEventTypes.length; // date + label + event rows
+
+      // Track event counters across weeks
+      const eventCounters = {
+        lecture: 1,
+        lab: 1,
+        recitation: 1
+      };
 
       weeks.forEach(week => {
         // Collect day info
-        const dayInfo = week.days.map(day => {
+        const dayInfo = week.days.map((day, dayIndex) => {
           const holiday = getHoliday(day.dateStr);
           const dateLabels = getDateLabels(day.dateStr);
           let bgColor = null;
@@ -433,7 +471,7 @@
             labels.push(formatLabel(label));
           }
 
-          return { day, bgColor, textColor, labels };
+          return { day, dayIndex, holiday, bgColor, textColor, labels };
         });
 
         // Date row
@@ -441,7 +479,7 @@
         dateRow.className = 'date-row';
         const weekTd = document.createElement('td');
         weekTd.className = 'week-header';
-        weekTd.rowSpan = 2;
+        weekTd.rowSpan = rowsPerWeek;
         weekTd.textContent = week.number;
         dateRow.appendChild(weekTd);
         dayInfo.forEach(({ day }) => {
@@ -462,6 +500,37 @@
           labelRow.appendChild(td);
         });
         tbody.appendChild(labelRow);
+
+        // Event rows
+        activeEventTypes.forEach(eventType => {
+          const eventRow = document.createElement('tr');
+          eventRow.className = 'event-row';
+          const selectedDays = eventDays[eventType];
+
+          dayInfo.forEach(({ dayIndex, holiday }) => {
+            const td = document.createElement('td');
+            let effectiveDayKey = Object.keys(dayIndexMap).find(k => dayIndexMap[k] === dayIndex);
+
+            // Monday Schedule Shift: treat this day as Monday
+            if (holiday?.name === 'Monday Schedule Shift') {
+              effectiveDayKey = 'M';
+            }
+
+            if (selectedDays.has(effectiveDayKey)) {
+              if (holiday && holiday.name !== 'Monday Schedule Shift') {
+                // Holiday - no class (but Monday Shift still has class)
+                td.textContent = '';
+              } else {
+                // Show numbered event
+                const label = eventType.charAt(0).toUpperCase() + eventType.slice(1);
+                td.textContent = `${label} ${eventCounters[eventType]}`;
+                eventCounters[eventType]++;
+              }
+            }
+            eventRow.appendChild(td);
+          });
+          tbody.appendChild(eventRow);
+        });
 
       });
     }
