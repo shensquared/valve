@@ -486,9 +486,15 @@ function renderSchedule() {
       tbody.appendChild(labelRow);
     }
 
-    // Event row (skip for Spring Break week)
+    // Event row (skip for Spring Break week or weeks with no class days)
     if (isSpringBreakWeek) return;
     if (activeEventTypes.length === 0) return;
+
+    // Skip if all days are before/after class period
+    const hasClassDays = dayInfo.some(({ beforeClasses, afterClasses, afterEndDate }) =>
+      !beforeClasses && !afterClasses && !afterEndDate
+    );
+    if (!hasClassDays) return;
 
     const eventRow = document.createElement('tr');
     eventRow.className = 'event-row';
