@@ -29,5 +29,23 @@
       "Monday Schedule Shift",
       "Patriots' Day"
     ]
+  },
+  "officialClassDays": {
+    "fall25": {
+      "total": 65,
+      "Monday": 12,
+      "Tuesday": 13,
+      "Wednesday": 15,
+      "Thursday": 13,
+      "Friday": 12
+    },
+    "spring26": {
+      "total": 65,
+      "Monday": 13,
+      "Tuesday": 13,
+      "Wednesday": 13,
+      "Thursday": 13,
+      "Friday": 13
+    }
   }
 }
