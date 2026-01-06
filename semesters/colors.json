@@ -1,0 +1,34 @@
+{
+  "palettes": {
+    "mit": {
+      "red": "#750014",
+      "brightRed": "#FF1423",
+      "gray": "#8b959e"
+    },
+    "eecs": {
+      "red": "#C6168D",
+      "purple": "#662D91",
+      "blue": "#00A1C7"
+    }
+  },
+  "levels": {
+    "High": "eecs-red",
+    "Medium": "eecs-purple"
+  },
+  "dates": {
+    "firstMonday": "Medium",
+    "startDate": "High",
+    "addDate": "Medium",
+    "dropDate": "Medium",
+    "lastDueHasFinal": "Medium",
+    "lastClassDate": "High",
+    "finalPeriodStart": "Medium",
+    "finalPeriodEnd": "Medium",
+    "gradesDueNoFinal": "High",
+    "gradesDueHasFinal": "High"
+  },
+  "holidays": {
+    "default": "#C2C0BF",
+    "Monday Schedule Shift": "High"
+  }
+}
