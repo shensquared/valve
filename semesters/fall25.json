@@ -12,10 +12,6 @@
   "gradesDueHasFinal": "2026-01-07",
   "holidays": [
     {
-      "date": "2025-09-01",
-      "name": "Labor Day"
-    },
-    {
       "date": "2025-09-19",
       "name": "Student Holiday"
     },
