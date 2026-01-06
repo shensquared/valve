@@ -11,7 +11,7 @@
     }
   },
   "levels": {
-    "High": "eecs-red",
+    "High": "mit-red",
     "Medium": "eecs-purple"
   },
   "dates": {
@@ -20,6 +20,7 @@
     "addDate": "Medium",
     "dropDate": "Medium",
     "lastDueHasFinal": "Medium",
+    "lastDueDate": "Medium",
     "lastClassDate": "High",
     "finalPeriodStart": "Medium",
     "finalPeriodEnd": "Medium",
@@ -27,7 +28,13 @@
     "gradesDueHasFinal": "High"
   },
   "holidays": {
-    "default": "#C2C0BF",
+    "default": "mit-gray",
     "Monday Schedule Shift": "High"
+  },
+  "date":"#4A90D9", 
+  "events": {
+    "lecture": "eecs-red",
+    "lab": "eecs-purple",
+    "recitation": "eecs-blue"
   }
 }
