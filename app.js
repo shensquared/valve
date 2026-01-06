@@ -221,6 +221,7 @@ function getHolidayColor(holiday) {
 function formatLabel(key) {
   // Special case labels
   if (key === 'startDate') return 'First Day of Class';
+  if (key === 'lastClassDate') return 'Last Day of Class';
   if (key === 'Monday Schedule Shift') return 'Follow Monday Schedule';
   // Remove "HasFinal" / "NoFinal" suffixes since toggle makes it clear
   let label = key
@@ -247,7 +248,18 @@ function renderSchedule() {
   const tbody = document.getElementById('scheduleBody');
   tbody.innerHTML = '';
 
-  const endDate = hasFinal ? currentSemester.finalPeriodEnd : currentSemester.gradesDueNoFinal;
+  // Determine calendar end date
+  let endDate;
+  if (hasFinal) {
+    // Check if gradesDue is within a week of finals end (Spring) vs much later (Fall)
+    const finalEnd = new Date(currentSemester.finalPeriodEnd + 'T00:00:00');
+    const gradesDue = new Date(currentSemester.gradesDueHasFinal + 'T00:00:00');
+    const daysDiff = (gradesDue - finalEnd) / (1000 * 60 * 60 * 24);
+    // If grades due within 7 days, extend calendar to show it; otherwise keep finals end
+    endDate = daysDiff <= 7 ? currentSemester.gradesDueHasFinal : currentSemester.finalPeriodEnd;
+  } else {
+    endDate = currentSemester.gradesDueNoFinal;
+  }
   console.log('hasFinal:', hasFinal, 'endDate:', endDate);
   // Find the Monday of the week containing startDate
   const startDateObj = new Date(currentSemester.startDate + 'T00:00:00');
@@ -259,7 +271,6 @@ function renderSchedule() {
   const weeks = generateWeeks(firstMondayStr, endDate);
   console.log('Generated', weeks.length, 'weeks, endDate:', endDate);
   const activeEventTypes = getActiveEventTypes();
-  const rowsPerWeek = 2 + activeEventTypes.length; // date + label + event rows
 
   // Track event counters across weeks
   const eventCounters = {
@@ -303,33 +314,12 @@ function renderSchedule() {
         labels.push(formatLabel(label));
       }
 
-      return { day, dayIndex, holiday, inFinals, beforeClasses, afterClasses, afterEndDate, bgColor, textColor, labels };
-    });
+      // Only startDate goes in date cell, lastClassDate stays in label row
+      const dateRowLabels = dateLabels.filter(l => l === 'startDate');
+      const labelRowLabels = labels.filter(l => l !== 'First Day of Class');
 
-    // Date row
-    const dateRow = document.createElement('tr');
-    dateRow.className = 'date-row';
-    const weekTd = document.createElement('td');
-    weekTd.className = 'week-header';
-    weekTd.rowSpan = rowsPerWeek;
-    weekTd.textContent = week.number;
-    dateRow.appendChild(weekTd);
-    dayInfo.forEach(({ day, beforeClasses, afterEndDate }) => {
-      const td = document.createElement('td');
-      if (!beforeClasses && !afterEndDate) {
-        td.textContent = day.display;
-        const dateColor = resolveColor(colors?.date) || colors?.date;
-        if (dateColor) {
-          td.style.backgroundColor = dateColor;
-        }
-      }
-      dateRow.appendChild(td);
+      return { day, dayIndex, holiday, inFinals, beforeClasses, afterClasses, afterEndDate, bgColor, textColor, labels: labelRowLabels, dateRowLabels };
     });
-    tbody.appendChild(dateRow);
-
-    // Label row (holidays/milestones)
-    const labelRow = document.createElement('tr');
-    labelRow.className = 'label-row';
 
     // Check if entire week is Spring Break (has both Start and End)
     const hasSpringBreakStart = dayInfo.some(({ holiday }) =>
@@ -351,86 +341,145 @@ function renderSchedule() {
       .filter(({ inFinals }) => inFinals && hasFinal);
     const hasFinalsInWeek = finalsDays.length > 0;
 
-    if (isSpringBreakWeek) {
-      const td = document.createElement('td');
-      td.colSpan = 5;
-      td.textContent = 'Spring Break';
-      td.style.backgroundColor = getHolidayColor({ name: 'Spring Break' });
-      labelRow.appendChild(td);
-    } else if (isThanksgivingWeek) {
-      // Render Mon-Wed normally, merge Thu-Fri for Thanksgiving
-      dayInfo.slice(0, 3).forEach(({ beforeClasses, bgColor, textColor, labels }) => {
-        const td = document.createElement('td');
-        if (!beforeClasses) {
-          if (bgColor) td.style.backgroundColor = bgColor;
-          if (textColor) td.style.color = textColor;
-          td.innerHTML = labels.join('<br>');
-        }
-        labelRow.appendChild(td);
-      });
-      const td = document.createElement('td');
-      td.colSpan = 2;
-      td.textContent = 'Thanksgiving';
-      td.style.backgroundColor = getHolidayColor({ name: 'Thanksgiving Holiday' });
-      labelRow.appendChild(td);
-    } else if (hasFinalsInWeek) {
-      // Render non-finals days normally, merge finals days
-      const firstFinalsIdx = finalsDays[0].idx;
-      const finalsCount = finalsDays.length;
+    // Check if label row would have any content
+    const hasLabelContent = isSpringBreakWeek || isThanksgivingWeek || hasFinalsInWeek ||
+      dayInfo.some(({ labels, beforeClasses, afterEndDate }) =>
+        !beforeClasses && !afterEndDate && labels.length > 0
+      );
 
-      // Days before finals
-      dayInfo.slice(0, firstFinalsIdx).forEach(({ beforeClasses, afterClasses, bgColor, textColor, labels }) => {
-        const td = document.createElement('td');
-        if (!beforeClasses && !afterClasses) {
-          if (bgColor) td.style.backgroundColor = bgColor;
-          if (textColor) td.style.color = textColor;
-          td.innerHTML = labels.join('<br>');
-        }
-        labelRow.appendChild(td);
-      });
+    // Calculate rows for this week (Spring Break has no date row, just label)
+    const rowsPerWeek = isSpringBreakWeek
+      ? 1
+      : 1 + (hasLabelContent ? 1 : 0) + activeEventTypes.length;
 
-      // Merged finals cell
-      const td = document.createElement('td');
-      td.colSpan = finalsCount;
-
-      // Only show grades due in finals cell for Fall (when it's >7 days after finals end)
-      const gradesDueDate = currentSemester.gradesDueHasFinal;
-      const finalEnd = new Date(currentSemester.finalPeriodEnd + 'T00:00:00');
-      const gradesDue = new Date(gradesDueDate + 'T00:00:00');
-      const daysDiff = (gradesDue - finalEnd) / (1000 * 60 * 60 * 24);
-
-      if (daysDiff > 7) {
-        // Fall term - grades due is next year
-        const gradesDueFormatted = gradesDue.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        td.innerHTML = `Finals Period<br><small>Grades Due: ${gradesDueFormatted}</small>`;
-      } else {
-        td.textContent = 'Finals Period';
-      }
-      td.style.backgroundColor = '#fff3cd';
-      labelRow.appendChild(td);
-
-      // Days after finals (if any in same week)
-      dayInfo.slice(firstFinalsIdx + finalsCount).forEach(({ beforeClasses, bgColor, textColor, labels }) => {
-        const td = document.createElement('td');
-        if (!beforeClasses) {
-          if (bgColor) td.style.backgroundColor = bgColor;
-          if (textColor) td.style.color = textColor;
-          td.innerHTML = labels.join('<br>');
-        }
-        labelRow.appendChild(td);
-      });
-    } else {
-      dayInfo.forEach(({ beforeClasses, afterEndDate, bgColor, textColor, labels }) => {
+    // Date row (skip for Spring Break)
+    if (!isSpringBreakWeek) {
+      const dateRow = document.createElement('tr');
+      dateRow.className = 'date-row';
+      const weekTd = document.createElement('td');
+      weekTd.className = 'week-header';
+      weekTd.rowSpan = rowsPerWeek;
+      weekTd.textContent = week.number;
+      dateRow.appendChild(weekTd);
+      dayInfo.forEach(({ day, beforeClasses, afterEndDate, dateRowLabels }) => {
         const td = document.createElement('td');
         if (!beforeClasses && !afterEndDate) {
-          if (bgColor) td.style.backgroundColor = bgColor;
-          if (textColor) td.style.color = textColor;
-          td.innerHTML = labels.join('<br>');
+          // Include special labels in date cell
+          let dateText = day.display;
+          if (dateRowLabels && dateRowLabels.length > 0) {
+            const labelText = dateRowLabels.map(l => formatLabel(l)).join(', ');
+            dateText = `${day.display} (${labelText})`;
+          }
+          td.textContent = dateText;
+          const dateColor = resolveColor(colors?.date) || colors?.date;
+          if (dateColor) {
+            td.style.backgroundColor = dateColor;
+          }
         }
-        labelRow.appendChild(td);
+        dateRow.appendChild(td);
       });
+      tbody.appendChild(dateRow);
     }
-    tbody.appendChild(labelRow);
+
+    // Label row (holidays/milestones) - only if there's content
+    if (hasLabelContent) {
+      const labelRow = document.createElement('tr');
+      labelRow.className = 'label-row';
+
+      if (isSpringBreakWeek) {
+        // Add week header for Spring Break row
+        const weekTd = document.createElement('td');
+        weekTd.className = 'week-header';
+        weekTd.rowSpan = 1;
+        weekTd.textContent = week.number;
+        labelRow.appendChild(weekTd);
+
+        // Get date range from first and last day of week
+        const startDate = new Date(dayInfo[0].day.dateStr + 'T00:00:00');
+        const endDate = new Date(dayInfo[4].day.dateStr + 'T00:00:00');
+        const startStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        const td = document.createElement('td');
+        td.colSpan = 5;
+        td.textContent = `Spring Break (${startStr} - ${endStr})`;
+        td.style.backgroundColor = getHolidayColor({ name: 'Spring Break' });
+        labelRow.appendChild(td);
+      } else if (isThanksgivingWeek) {
+        // Render Mon-Wed normally, merge Thu-Fri for Thanksgiving
+        dayInfo.slice(0, 3).forEach(({ beforeClasses, bgColor, textColor, labels }) => {
+          const td = document.createElement('td');
+          if (!beforeClasses) {
+            if (bgColor) td.style.backgroundColor = bgColor;
+            if (textColor) td.style.color = textColor;
+            td.innerHTML = labels.join('<br>');
+          }
+          labelRow.appendChild(td);
+        });
+        const td = document.createElement('td');
+        td.colSpan = 2;
+        td.textContent = 'Thanksgiving';
+        td.style.backgroundColor = getHolidayColor({ name: 'Thanksgiving Holiday' });
+        labelRow.appendChild(td);
+      } else if (hasFinalsInWeek) {
+        // Render non-finals days normally, merge finals days
+        const firstFinalsIdx = finalsDays[0].idx;
+        const finalsCount = finalsDays.length;
+
+        // Days before finals
+        dayInfo.slice(0, firstFinalsIdx).forEach(({ beforeClasses, afterClasses, bgColor, textColor, labels }) => {
+          const td = document.createElement('td');
+          if (!beforeClasses && !afterClasses) {
+            if (bgColor) td.style.backgroundColor = bgColor;
+            if (textColor) td.style.color = textColor;
+            td.innerHTML = labels.join('<br>');
+          }
+          labelRow.appendChild(td);
+        });
+
+        // Merged finals cell
+        const td = document.createElement('td');
+        td.colSpan = finalsCount;
+
+        // Only show grades due in finals cell for Fall (when it's >7 days after finals end)
+        const gradesDueDate = currentSemester.gradesDueHasFinal;
+        const finalEnd = new Date(currentSemester.finalPeriodEnd + 'T00:00:00');
+        const gradesDue = new Date(gradesDueDate + 'T00:00:00');
+        const daysDiff = (gradesDue - finalEnd) / (1000 * 60 * 60 * 24);
+
+        if (daysDiff > 7) {
+          // Fall term - grades due is next year
+          const gradesDueFormatted = gradesDue.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          td.innerHTML = `Finals Period<br><small>Grades Due: ${gradesDueFormatted}</small>`;
+        } else {
+          td.textContent = 'Finals Period';
+        }
+        td.style.backgroundColor = '#fff3cd';
+        labelRow.appendChild(td);
+
+        // Days after finals (if any in same week)
+        dayInfo.slice(firstFinalsIdx + finalsCount).forEach(({ beforeClasses, bgColor, textColor, labels }) => {
+          const td = document.createElement('td');
+          if (!beforeClasses) {
+            if (bgColor) td.style.backgroundColor = bgColor;
+            if (textColor) td.style.color = textColor;
+            td.innerHTML = labels.join('<br>');
+          }
+          labelRow.appendChild(td);
+        });
+      } else {
+        dayInfo.forEach(({ beforeClasses, afterEndDate, bgColor, textColor, labels }) => {
+          const td = document.createElement('td');
+          if (!beforeClasses && !afterEndDate) {
+            if (bgColor) td.style.backgroundColor = bgColor;
+            if (textColor) td.style.color = textColor;
+            td.innerHTML = labels.join('<br>');
+          }
+          labelRow.appendChild(td);
+        });
+      }
+      tbody.appendChild(labelRow);
+    }
 
     // Event rows
     activeEventTypes.forEach(eventType => {

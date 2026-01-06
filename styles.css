@@ -114,18 +114,26 @@ table {
 .date-row td {
   font-weight: 600;
   font-size: 13px;
-  min-height: 40px;
-  height: 40px;
+  min-height: 32px;
+  height: 32px;
   vertical-align: middle;
   color: white;
+  border-top: 3px double #999;
 }
 
 .label-row td {
   font-size: 11px;
-  min-height: 50px;
-  height: 50px;
+  min-height: 32px;
+  height: 32px;
   vertical-align: middle;
   background: #fafbfc;
+}
+
+.label-row td.week-header {
+  background: linear-gradient(180deg, #667788 0%, #556677 100%);
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .event-row td {
