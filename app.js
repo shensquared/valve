@@ -210,6 +210,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const afterClasses = dateStr > currentSemester.lastClassDate;
       if (beforeClasses || afterClasses) return;
 
+      // MT1 must be before MT2
+      if (draggedMidterm === 1 && midterms[2] && dateStr >= midterms[2]) return;
+      if (draggedMidterm === 2 && midterms[1] && dateStr <= midterms[1]) return;
+
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       td.classList.add('drop-target');
@@ -236,6 +240,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const beforeClasses = dateStr < currentSemester.startDate;
       const afterClasses = dateStr > currentSemester.lastClassDate;
       if (beforeClasses || afterClasses) return;
+
+      // Validate: MT1 must be before MT2
+      if (draggedMidterm === 1 && midterms[2] && dateStr >= midterms[2]) return;
+      if (draggedMidterm === 2 && midterms[1] && dateStr <= midterms[1]) return;
 
       midterms[draggedMidterm] = dateStr;
       // Update button state
