@@ -252,12 +252,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Click on calendar midterm label to remove it (return to dock)
+  // Click on midterm remove button to remove it (return to dock)
   scheduleBody.addEventListener('click', (e) => {
-    const label = e.target.closest('.midterm-label');
-    if (label && label.dataset.midterm) {
+    const removeBtn = e.target.closest('.midterm-remove');
+    if (removeBtn && removeBtn.dataset.midterm) {
+      e.stopPropagation();
       saveState();
-      const mt = parseInt(label.dataset.midterm);
+      const mt = parseInt(removeBtn.dataset.midterm);
       midterms[mt] = null;
       const btn = document.querySelector(`.midterm-btn[data-midterm="${mt}"]`);
       if (btn) btn.classList.remove('placed');
@@ -266,11 +267,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Click on event remove button
-    const removeBtn = e.target.closest('.event-remove');
-    if (removeBtn) {
-      const dateStr = removeBtn.dataset.date;
-      const types = removeBtn.dataset.types.split(',');
-      const labels = removeBtn.dataset.labels.split(',');
+    const eventRemoveBtn = e.target.closest('.event-remove');
+    if (eventRemoveBtn) {
+      const dateStr = eventRemoveBtn.dataset.date;
+      const types = eventRemoveBtn.dataset.types.split(',');
+      const labels = eventRemoveBtn.dataset.labels.split(',');
 
       // First removal - ask user for preference
       if (removalMode === null) {
@@ -766,7 +767,7 @@ function renderSchedule() {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
             const labelHtml = labels.join('<br>');
-            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}</span>`).join(' ');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}<button class="midterm-remove" data-midterm="${mt.replace('MT', '')}">&times;</button></span>`).join(' ');
             if (labelHtml && midtermHtml) {
               td.innerHTML = labelHtml + '<br>' + midtermHtml;
             } else {
@@ -792,7 +793,7 @@ function renderSchedule() {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
             const labelHtml = labels.join('<br>');
-            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}</span>`).join(' ');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}<button class="midterm-remove" data-midterm="${mt.replace('MT', '')}">&times;</button></span>`).join(' ');
             if (labelHtml && midtermHtml) {
               td.innerHTML = labelHtml + '<br>' + midtermHtml;
             } else {
@@ -829,7 +830,7 @@ function renderSchedule() {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
             const labelHtml = labels.join('<br>');
-            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}</span>`).join(' ');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}<button class="midterm-remove" data-midterm="${mt.replace('MT', '')}">&times;</button></span>`).join(' ');
             if (labelHtml && midtermHtml) {
               td.innerHTML = labelHtml + '<br>' + midtermHtml;
             } else {
@@ -846,7 +847,7 @@ function renderSchedule() {
             if (textColor) td.style.color = textColor;
             // Combine labels with midterm badges
             const labelHtml = labels.join('<br>');
-            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}</span>`).join(' ');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}<button class="midterm-remove" data-midterm="${mt.replace('MT', '')}">&times;</button></span>`).join(' ');
             if (labelHtml && midtermHtml) {
               td.innerHTML = labelHtml + '<br>' + midtermHtml;
             } else {

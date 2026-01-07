@@ -111,8 +111,8 @@ table {
 
 .label-row td {
   font-size: 11px;
-  min-height: 32px;
-  height: 32px;
+  min-height: 28px;
+  height: 28px;
   vertical-align: middle;
   background: white;
 }
@@ -321,16 +321,17 @@ table {
 
 .midterm-label {
   display: block;
-  background: #fff3cd;
+  position: relative;
+  background: transparent;
   color: #856404;
-  padding: 4px;
+  padding: 0;
   font-size: 11px;
   font-weight: 600;
   cursor: grab;
 }
 
 .midterm-label:hover {
-  background: #ffe69c;
+  background: transparent;
 }
 
 .midterm-label.dragging {
@@ -340,15 +341,39 @@ table {
 /* Style label-row cells containing midterms */
 .label-row td:has(.midterm-label) {
   background: #fff3cd;
-  padding: 0;
+  position: relative;
 }
 
 .label-row td:has(.midterm-label) .midterm-label {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 32px;
+}
+
+.midterm-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 10px;
+  line-height: 14px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.label-row td:has(.midterm-label):hover .midterm-remove {
+  opacity: 1;
+}
+
+.midterm-remove:hover {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .event-cell {
