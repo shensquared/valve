@@ -11,6 +11,10 @@ let eventDays = {
   lab: new Set(),
   recitation: new Set()
 };
+let midterms = {
+  1: null,  // dateStr or null
+  2: null
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load colors
@@ -66,6 +70,108 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.log('Toggle clicked, hasFinal now:', hasFinal);
       renderSchedule();
     });
+  });
+
+  // Midterm drag-and-drop
+  let draggedMidterm = null;
+
+  function setupMidtermDrag(element, midtermNum) {
+    element.setAttribute('draggable', 'true');
+    element.addEventListener('dragstart', (e) => {
+      draggedMidterm = midtermNum;
+      element.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    element.addEventListener('dragend', () => {
+      element.classList.remove('dragging');
+      draggedMidterm = null;
+      document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+    });
+  }
+
+  document.querySelectorAll('.midterm-btn').forEach(btn => {
+    const mt = parseInt(btn.dataset.midterm);
+    setupMidtermDrag(btn, mt);
+  });
+
+  // Delegated drag handlers for midterm labels on calendar
+  const scheduleBody = document.getElementById('scheduleBody');
+
+  scheduleBody.addEventListener('dragstart', (e) => {
+    const label = e.target.closest('.midterm-label');
+    if (label && label.dataset.midterm) {
+      draggedMidterm = parseInt(label.dataset.midterm);
+      label.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+  });
+
+  scheduleBody.addEventListener('dragend', (e) => {
+    const label = e.target.closest('.midterm-label');
+    if (label) {
+      label.classList.remove('dragging');
+      draggedMidterm = null;
+      document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+    }
+  });
+
+  // Click on calendar midterm label to remove it (return to dock)
+  scheduleBody.addEventListener('click', (e) => {
+    const label = e.target.closest('.midterm-label');
+    if (label && label.dataset.midterm) {
+      const mt = parseInt(label.dataset.midterm);
+      midterms[mt] = null;
+      const btn = document.querySelector(`.midterm-btn[data-midterm="${mt}"]`);
+      if (btn) btn.classList.remove('placed');
+      renderSchedule();
+    }
+  });
+
+  // Drop handlers on schedule table (delegated)
+
+  scheduleBody.addEventListener('dragover', (e) => {
+    if (!draggedMidterm) return;
+    const td = e.target.closest('td');
+    if (td && td.dataset.dateStr && currentSemester) {
+      const dateStr = td.dataset.dateStr;
+      const beforeClasses = dateStr < currentSemester.startDate;
+      const afterClasses = dateStr > currentSemester.lastClassDate;
+      if (beforeClasses || afterClasses) return;
+
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      td.classList.add('drop-target');
+    }
+  });
+
+  scheduleBody.addEventListener('dragleave', (e) => {
+    const td = e.target.closest('td');
+    if (td) {
+      td.classList.remove('drop-target');
+    }
+  });
+
+  scheduleBody.addEventListener('drop', (e) => {
+    if (!draggedMidterm) return;
+    const td = e.target.closest('td');
+    if (td && td.dataset.dateStr) {
+      e.preventDefault();
+      td.classList.remove('drop-target');
+
+      const dateStr = td.dataset.dateStr;
+      // Validate: must be within class period
+      if (!currentSemester) return;
+      const beforeClasses = dateStr < currentSemester.startDate;
+      const afterClasses = dateStr > currentSemester.lastClassDate;
+      if (beforeClasses || afterClasses) return;
+
+      midterms[draggedMidterm] = dateStr;
+      // Update button state
+      const btn = document.querySelector(`.midterm-btn[data-midterm="${draggedMidterm}"]`);
+      if (btn) btn.classList.add('placed');
+      renderSchedule();
+    }
   });
 });
 
@@ -125,6 +231,13 @@ function generateWeeks(firstMonday, lastClassDate) {
 function getHoliday(dateStr) {
   if (!currentSemester?.holidays) return null;
   return currentSemester.holidays.find(h => h.date === dateStr);
+}
+
+function getMidtermsForDate(dateStr) {
+  const result = [];
+  if (midterms[1] === dateStr) result.push('MT1');
+  if (midterms[2] === dateStr) result.push('MT2');
+  return result;
 }
 
 function isInSpringBreak(dateStr) {
@@ -291,6 +404,7 @@ function renderSchedule() {
       const beforeClasses = isBeforeClasses(day.dateStr);
       const afterClasses = isAfterClasses(day.dateStr);
       const afterEndDate = day.dateStr > endDate;
+      const dayMidterms = getMidtermsForDate(day.dateStr);
       let bgColor = null;
       let textColor = null;
       let labels = [];
@@ -321,7 +435,7 @@ function renderSchedule() {
       const dateRowLabels = dateLabels.filter(l => l === 'startDate');
       const labelRowLabels = labels.filter(l => l !== 'First Day of Class');
 
-      return { day, dayIndex, holiday, inFinals, beforeClasses, afterClasses, afterEndDate, bgColor, textColor, labels: labelRowLabels, dateRowLabels };
+      return { day, dayIndex, holiday, inFinals, beforeClasses, afterClasses, afterEndDate, bgColor, textColor, labels: labelRowLabels, dateRowLabels, midterms: dayMidterms };
     });
 
     // Check if entire week is Spring Break (has both Start and End)
@@ -346,8 +460,8 @@ function renderSchedule() {
 
     // Check if label row would have any content
     const hasLabelContent = isSpringBreakWeek || isThanksgivingWeek || hasFinalsInWeek ||
-      dayInfo.some(({ labels, beforeClasses, afterEndDate }) =>
-        !beforeClasses && !afterEndDate && labels.length > 0
+      dayInfo.some(({ labels, midterms: dayMidterms, beforeClasses, afterEndDate }) =>
+        !beforeClasses && !afterEndDate && (labels.length > 0 || dayMidterms.length > 0)
       );
 
     // Check if any selected days would have classes this week
@@ -383,6 +497,8 @@ function renderSchedule() {
       dayInfo.forEach(({ day, beforeClasses, afterEndDate, dateRowLabels }) => {
         const td = document.createElement('td');
         if (!beforeClasses && !afterEndDate) {
+          // Add data-dateStr for drop targeting
+          td.dataset.dateStr = day.dateStr;
           // Include special labels in date cell
           let dateText = day.display;
           if (dateRowLabels && dateRowLabels.length > 0) {
@@ -427,12 +543,18 @@ function renderSchedule() {
         labelRow.appendChild(td);
       } else if (isThanksgivingWeek) {
         // Render Mon-Wed normally, merge Thu-Fri for Thanksgiving
-        dayInfo.slice(0, 3).forEach(({ beforeClasses, bgColor, textColor, labels }) => {
+        dayInfo.slice(0, 3).forEach(({ beforeClasses, bgColor, textColor, labels, midterms: dayMidterms }) => {
           const td = document.createElement('td');
           if (!beforeClasses) {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
-            td.innerHTML = labels.join('<br>');
+            const labelHtml = labels.join('<br>');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">${mt}</span>`).join(' ');
+            if (labelHtml && midtermHtml) {
+              td.innerHTML = labelHtml + '<br>' + midtermHtml;
+            } else {
+              td.innerHTML = labelHtml || midtermHtml;
+            }
           }
           labelRow.appendChild(td);
         });
@@ -447,12 +569,18 @@ function renderSchedule() {
         const finalsCount = finalsDays.length;
 
         // Days before finals
-        dayInfo.slice(0, firstFinalsIdx).forEach(({ beforeClasses, afterClasses, bgColor, textColor, labels }) => {
+        dayInfo.slice(0, firstFinalsIdx).forEach(({ beforeClasses, afterClasses, bgColor, textColor, labels, midterms: dayMidterms }) => {
           const td = document.createElement('td');
           if (!beforeClasses && !afterClasses) {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
-            td.innerHTML = labels.join('<br>');
+            const labelHtml = labels.join('<br>');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">${mt}</span>`).join(' ');
+            if (labelHtml && midtermHtml) {
+              td.innerHTML = labelHtml + '<br>' + midtermHtml;
+            } else {
+              td.innerHTML = labelHtml || midtermHtml;
+            }
           }
           labelRow.appendChild(td);
         });
@@ -478,22 +606,35 @@ function renderSchedule() {
         labelRow.appendChild(td);
 
         // Days after finals (if any in same week)
-        dayInfo.slice(firstFinalsIdx + finalsCount).forEach(({ beforeClasses, bgColor, textColor, labels }) => {
+        dayInfo.slice(firstFinalsIdx + finalsCount).forEach(({ beforeClasses, bgColor, textColor, labels, midterms: dayMidterms }) => {
           const td = document.createElement('td');
           if (!beforeClasses) {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
-            td.innerHTML = labels.join('<br>');
+            const labelHtml = labels.join('<br>');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">${mt}</span>`).join(' ');
+            if (labelHtml && midtermHtml) {
+              td.innerHTML = labelHtml + '<br>' + midtermHtml;
+            } else {
+              td.innerHTML = labelHtml || midtermHtml;
+            }
           }
           labelRow.appendChild(td);
         });
       } else {
-        dayInfo.forEach(({ beforeClasses, afterEndDate, bgColor, textColor, labels }) => {
+        dayInfo.forEach(({ beforeClasses, afterEndDate, bgColor, textColor, labels, midterms: dayMidterms }) => {
           const td = document.createElement('td');
           if (!beforeClasses && !afterEndDate) {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
-            td.innerHTML = labels.join('<br>');
+            // Combine labels with midterm badges
+            const labelHtml = labels.join('<br>');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">${mt}</span>`).join(' ');
+            if (labelHtml && midtermHtml) {
+              td.innerHTML = labelHtml + '<br>' + midtermHtml;
+            } else {
+              td.innerHTML = labelHtml || midtermHtml;
+            }
           }
           labelRow.appendChild(td);
         });

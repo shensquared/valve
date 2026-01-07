@@ -236,3 +236,63 @@ table {
   color: white;
   border-color: #667788;
 }
+
+.midterm-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.midterm-btn {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 2px solid #d4a800;
+  border-radius: 6px;
+  background: #fff3cd;
+  color: #856404;
+  cursor: grab;
+  transition: all 0.15s;
+}
+
+.midterm-btn:hover {
+  background: #ffe69c;
+  transform: scale(1.05);
+}
+
+.midterm-btn:active {
+  cursor: grabbing;
+}
+
+.midterm-btn.placed {
+  display: none;
+}
+
+.midterm-btn.dragging {
+  opacity: 0.5;
+}
+
+#scheduleTable td.drop-target {
+  outline: 2px dashed #d4a800;
+  outline-offset: -2px;
+  background: #fff3cd !important;
+}
+
+.midterm-label {
+  display: inline-block;
+  background: #fff3cd;
+  color: #856404;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #d4a800;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: grab;
+}
+
+.midterm-label:hover {
+  background: #ffe69c;
+}
+
+.midterm-label.dragging {
+  opacity: 0.5;
+}
