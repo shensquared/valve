@@ -49,6 +49,78 @@ function undo() {
   renderSchedule();
 }
 
+function saveCalendarState() {
+  if (!currentSemester) {
+    alert('No semester loaded');
+    return;
+  }
+
+  const state = {
+    semester: currentSemester.name,
+    hasFinal: hasFinal,
+    eventDays: {
+      lecture: Array.from(eventDays.lecture),
+      lab: Array.from(eventDays.lab),
+      recitation: Array.from(eventDays.recitation)
+    },
+    midterms: midterms,
+    removedEvents: Array.from(removedEvents),
+    removalMode: removalMode
+  };
+
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+  a.download = `${currentSemester.name.replace(/\s+/g, '-').toLowerCase()}-${timestamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function loadCalendarState(state) {
+  // Restore hasFinal
+  hasFinal = state.hasFinal ?? true;
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.value === (hasFinal ? 'yes' : 'no'));
+  });
+
+  // Restore eventDays
+  eventDays.lecture = new Set(state.eventDays?.lecture || []);
+  eventDays.lab = new Set(state.eventDays?.lab || []);
+  eventDays.recitation = new Set(state.eventDays?.recitation || []);
+
+  // Update day matrix UI
+  document.querySelectorAll('.day-matrix .day-btn').forEach(btn => {
+    const row = btn.closest('tr');
+    const eventType = row.dataset.event;
+    const day = btn.dataset.day;
+    btn.classList.toggle('active', eventDays[eventType].has(day));
+  });
+
+  // Restore midterms
+  midterms = state.midterms || { 1: null, 2: null };
+  [1, 2].forEach(mt => {
+    const btn = document.querySelector(`.midterm-btn[data-midterm="${mt}"]`);
+    if (btn) {
+      btn.classList.toggle('placed', !!midterms[mt]);
+    }
+  });
+
+  // Restore removedEvents
+  removedEvents = new Set(state.removedEvents || []);
+  removalMode = state.removalMode || null;
+
+  // Clear undo stack
+  undoStack = [];
+
+  renderSchedule();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Load colors
   try {
@@ -111,6 +183,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.preventDefault();
       undo();
     }
+  });
+
+  // Save button
+  document.getElementById('saveBtn').addEventListener('click', saveCalendarState);
+
+  // Load button
+  const loadBtn = document.getElementById('loadBtn');
+  const loadFile = document.getElementById('loadFile');
+  loadBtn.addEventListener('click', () => loadFile.click());
+  loadFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const state = JSON.parse(evt.target.result);
+        loadCalendarState(state);
+      } catch (err) {
+        alert('Failed to parse file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    loadFile.value = '';  // Reset for re-uploading same file
   });
 
   // Midterm drag-and-drop
