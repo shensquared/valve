@@ -15,6 +15,8 @@ let midterms = {
   1: null,  // dateStr or null
   2: null
 };
+let removedEvents = new Set();  // stores "dateStr-eventType" keys
+let removalMode = null;  // 'shift' or 'skip' - set on first removal
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load colors
@@ -125,8 +127,77 @@ document.addEventListener('DOMContentLoaded', async () => {
       const btn = document.querySelector(`.midterm-btn[data-midterm="${mt}"]`);
       if (btn) btn.classList.remove('placed');
       renderSchedule();
+      return;
+    }
+
+    // Click on event remove button
+    const removeBtn = e.target.closest('.event-remove');
+    if (removeBtn) {
+      const dateStr = removeBtn.dataset.date;
+      const types = removeBtn.dataset.types.split(',');
+      const labels = removeBtn.dataset.labels.split(',');
+
+      // First removal - ask user for preference
+      if (removalMode === null) {
+        // Build contextual example from actual events being removed
+        const examples = labels.map(label => {
+          const match = label.match(/^(\w+)\s+(\d+)$/);
+          if (match) {
+            const [, name, num] = match;
+            const n = parseInt(num);
+            return {
+              shift: `${name} ${n + 1} → ${name} ${n}`,
+              skip: `No ${name} ${n}`
+            };
+          }
+          return { shift: 'Next shifts up', skip: 'Simply removed' };
+        });
+
+        const shiftExamples = examples.map(e => e.shift).join(', ');
+        const skipExamples = examples.map(e => e.skip).join(', ');
+
+        // Show custom modal
+        const modal = document.getElementById('removalModal');
+        const message = document.getElementById('modalMessage');
+        message.textContent = `Removing ${labels.join(', ')}.\n\nHow should remaining events be numbered?\n\nShift: ${shiftExamples}\nSkip: ${skipExamples}`;
+        modal.classList.remove('hidden');
+
+        // Store pending removal info for modal buttons
+        modal.dataset.pendingDate = dateStr;
+        modal.dataset.pendingTypes = types.join(',');
+        return;
+      }
+
+      types.forEach(type => {
+        removedEvents.add(`${dateStr}-${type}`);
+      });
+      renderSchedule();
     }
   });
+
+  // Modal button handlers
+  document.getElementById('modalShift').addEventListener('click', () => {
+    removalMode = 'shift';
+    completeRemoval();
+  });
+
+  document.getElementById('modalSkip').addEventListener('click', () => {
+    removalMode = 'skip';
+    completeRemoval();
+  });
+
+  function completeRemoval() {
+    const modal = document.getElementById('removalModal');
+    const dateStr = modal.dataset.pendingDate;
+    const types = modal.dataset.pendingTypes.split(',');
+
+    types.forEach(type => {
+      removedEvents.add(`${dateStr}-${type}`);
+    });
+
+    modal.classList.add('hidden');
+    renderSchedule();
+  }
 
   // Drop handlers on schedule table (delegated)
 
@@ -668,16 +739,26 @@ function renderSchedule() {
 
       // Collect all events for this day
       const dayEvents = [];
+      const dateStr = dayInfo[dayIndex].day.dateStr;
       activeEventTypes.forEach(eventType => {
         if (eventDays[eventType].has(effectiveDayKey)) {
           if (!isHoliday && !inSpringBreak) {
             const label = eventType.charAt(0).toUpperCase() + eventType.slice(1);
-            dayEvents.push({
-              text: `${label} ${eventCounters[eventType]}`,
-              color: resolveColor(colors?.events?.[eventType]) || colors?.events?.[eventType],
-              type: eventType
-            });
-            eventCounters[eventType]++;
+            const eventKey = `${dateStr}-${eventType}`;
+            const isRemoved = removedEvents.has(eventKey);
+            if (!isRemoved) {
+              dayEvents.push({
+                text: `${label} ${eventCounters[eventType]}`,
+                color: resolveColor(colors?.events?.[eventType]) || colors?.events?.[eventType],
+                type: eventType,
+                dateStr: dateStr
+              });
+              eventCounters[eventType]++;
+            } else if (removalMode === 'skip') {
+              // Skip mode: increment even for removed events
+              eventCounters[eventType]++;
+            }
+            // Shift mode: don't increment for removed events
           }
         }
       });
@@ -687,7 +768,9 @@ function renderSchedule() {
         if (dayEvents[0].color) {
           td.style.backgroundColor = dayEvents[0].color;
         }
-        td.textContent = dayEvents.map(e => e.text).join(' / ');
+        td.className = 'event-cell';
+        const eventTexts = dayEvents.map(e => e.text);
+        td.innerHTML = `<span class="event-text">${eventTexts.join(' / ')}</span><button class="event-remove" data-date="${dateStr}" data-types="${dayEvents.map(e => e.type).join(',')}" data-labels="${eventTexts.join(',')}">&times;</button>`;
       }
 
       eventRow.appendChild(td);
