@@ -149,6 +149,7 @@ function updateTopicsSummary() {
 
   container.innerHTML = lectureNums.map(num => `
     <div class="topic-item" data-lecture-num="${num}">
+      <span class="drag-handle">⋮⋮</span>
       <span class="topic-num">Lecture ${num}:</span>
       <span class="topic-text" contenteditable="true" data-lecture-num="${num}">${lectureTopics[num] || ''}</span>
     </div>
@@ -171,6 +172,76 @@ function updateTopicsSummary() {
       if (e.key === 'Enter') {
         e.preventDefault();
         e.target.blur();
+      }
+    });
+  });
+
+  // Add drag-and-drop for reordering topics
+  let draggedTopicItem = null;
+
+  container.querySelectorAll('.topic-item').forEach(item => {
+    item.setAttribute('draggable', 'true');
+
+    item.addEventListener('dragstart', (e) => {
+      // Don't drag if we're editing the text
+      if (e.target.closest('.topic-text[contenteditable]') === document.activeElement) {
+        e.preventDefault();
+        return;
+      }
+      draggedTopicItem = item;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      draggedTopicItem = null;
+      container.querySelectorAll('.topic-item').forEach(i => i.classList.remove('drag-over'));
+    });
+
+    item.addEventListener('dragover', (e) => {
+      if (!draggedTopicItem || draggedTopicItem === item) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      item.classList.add('drag-over');
+    });
+
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drag-over');
+    });
+
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!draggedTopicItem || draggedTopicItem === item) return;
+      item.classList.remove('drag-over');
+
+      // Get lecture numbers
+      const fromNum = parseInt(draggedTopicItem.dataset.lectureNum);
+      const toNum = parseInt(item.dataset.lectureNum);
+
+      // Reorder topics - swap topics between fromNum and toNum
+      const newTopics = {};
+      const allNums = Object.keys(lectureTopics).map(n => parseInt(n)).sort((a, b) => a - b);
+
+      // Build array of topics in current order
+      const topicArray = allNums.map(n => ({ num: n, topic: lectureTopics[n] || '' }));
+
+      // Find indices
+      const fromIdx = topicArray.findIndex(t => t.num === fromNum);
+      const toIdx = topicArray.findIndex(t => t.num === toNum);
+
+      if (fromIdx !== -1 && toIdx !== -1) {
+        // Remove from old position and insert at new position
+        const [moved] = topicArray.splice(fromIdx, 1);
+        topicArray.splice(toIdx, 0, moved);
+
+        // Reassign topics to lecture numbers
+        topicArray.forEach((t, idx) => {
+          newTopics[allNums[idx]] = t.topic;
+        });
+
+        lectureTopics = newTopics;
+        renderSchedule();
       }
     });
   });
@@ -242,6 +313,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Save button
   document.getElementById('saveBtn').addEventListener('click', saveCalendarState);
+
+  // Apply pasted topics
+  document.getElementById('applyPasteBtn').addEventListener('click', () => {
+    const textarea = document.getElementById('pasteInput');
+    const text = textarea.value.trim();
+    if (!text) return;
+
+    // Parse lines - handle various formats:
+    // "Topic" or "1. Topic" or "Lecture 1: Topic" or "1: Topic"
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+
+    lines.forEach((line, index) => {
+      const lectureNum = index + 1;
+      // Strip common prefixes
+      let topic = line
+        .replace(/^\d+[\.\):\s]+/, '')  // "1. " or "1) " or "1: "
+        .replace(/^Lecture\s+\d+[:\s]*/i, '')  // "Lecture 1: "
+        .trim();
+
+      if (topic) {
+        lectureTopics[lectureNum] = topic;
+      }
+    });
+
+    textarea.value = '';
+    renderSchedule();
+  });
 
   // Load button
   const loadBtn = document.getElementById('loadBtn');
@@ -401,12 +499,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const num = parseInt(numAttr);
     const text = eventText.textContent.trim();
-    console.log('Calendar edit:', num, text);
 
     // Parse topic - extract anything after "Lecture N" (with optional colon)
     const match = text.match(/^Lecture\s+\d+[:\s]*(.*)$/i);
     const topic = match ? match[1].trim() : '';
-    console.log('Parsed topic:', topic);
     lectureTopics[num] = topic;
 
     // Reset the cell text to proper format (with colon if topic exists)
@@ -415,7 +511,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Update sidebar
     const sidebarEl = document.querySelector(`.topic-text[data-lecture-num="${num}"]`);
-    console.log('Sidebar element:', sidebarEl, 'topic:', topic);
     if (sidebarEl) {
       sidebarEl.textContent = topic;
     }
