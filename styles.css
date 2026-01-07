@@ -65,21 +65,73 @@ select:focus {
   letter-spacing: 0.3px;
 }
 
-.sidebar textarea {
+.topics-summary {
   flex: 1;
   min-height: 200px;
   padding: 12px;
-  font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  resize: vertical;
+  background: white;
+  overflow-y: auto;
 }
 
-.sidebar textarea:focus {
+.topics-placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.topic-item {
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  gap: 8px;
+}
+
+.topic-item:last-child {
+  border-bottom: none;
+}
+
+.topic-num {
+  font-weight: 600;
+  color: #667788;
+  white-space: nowrap;
+}
+
+.topic-text {
+  color: #666;
+  flex: 1;
+  cursor: text;
+  padding: 2px 4px;
+  border-radius: 4px;
+  min-width: 50px;
+}
+
+.topic-text:hover {
+  background: #f5f5f5;
+}
+
+.topic-text:focus {
   outline: none;
-  border-color: #667788;
-  box-shadow: 0 0 0 3px rgba(102,119,136,0.15);
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(102,119,136,0.3);
+}
+
+.topic-text:empty::before {
+  content: "Add topic...";
+  color: #bbb;
+  font-style: italic;
+}
+
+/* Editable event cell */
+.event-cell .event-text {
+  cursor: text;
+}
+
+.event-cell .event-text:focus {
+  outline: none;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
 }
 
 @media (max-width: 1200px) {
@@ -93,7 +145,7 @@ select:focus {
     flex: 1 1 auto;
   }
 
-  .sidebar textarea {
+  .topics-summary {
     min-height: 150px;
   }
 }

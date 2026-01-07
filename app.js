@@ -18,6 +18,7 @@ let midterms = {
 let removedEvents = new Set();  // stores "dateStr-eventType" keys
 let removalMode = null;  // 'shift' or 'skip' - set on first removal
 let undoStack = [];  // stores previous states for undo
+let lectureTopics = {};  // stores { 1: "topic1", 2: "topic2", ... }
 
 function saveState() {
   undoStack.push({
@@ -65,7 +66,8 @@ function saveCalendarState() {
     },
     midterms: midterms,
     removedEvents: Array.from(removedEvents),
-    removalMode: removalMode
+    removalMode: removalMode,
+    lectureTopics: lectureTopics
   };
 
   const json = JSON.stringify(state, null, 2);
@@ -115,10 +117,63 @@ function loadCalendarState(state) {
   removedEvents = new Set(state.removedEvents || []);
   removalMode = state.removalMode || null;
 
+  // Restore lecture topics
+  lectureTopics = state.lectureTopics || {};
+
   // Clear undo stack
   undoStack = [];
 
   renderSchedule();
+}
+
+function updateTopicsSummary() {
+  const container = document.getElementById('topicsSummary');
+  if (!container) return;
+
+  // Get all lecture numbers that exist
+  const lectureNums = Object.keys(lectureTopics).map(n => parseInt(n)).sort((a, b) => a - b);
+
+  // Also check the calendar for lectures without topics yet
+  document.querySelectorAll('.event-cell[data-lecture-num]').forEach(cell => {
+    const num = parseInt(cell.dataset.lectureNum);
+    if (!lectureNums.includes(num)) {
+      lectureNums.push(num);
+    }
+  });
+  lectureNums.sort((a, b) => a - b);
+
+  if (lectureNums.length === 0) {
+    container.innerHTML = '<p class="topics-placeholder">Select lecture days to see topics</p>';
+    return;
+  }
+
+  container.innerHTML = lectureNums.map(num => `
+    <div class="topic-item" data-lecture-num="${num}">
+      <span class="topic-num">Lecture ${num}:</span>
+      <span class="topic-text" contenteditable="true" data-lecture-num="${num}">${lectureTopics[num] || ''}</span>
+    </div>
+  `).join('');
+
+  // Add event listeners for editing in sidebar
+  container.querySelectorAll('.topic-text').forEach(el => {
+    el.addEventListener('blur', (e) => {
+      const num = parseInt(e.target.dataset.lectureNum);
+      const newTopic = e.target.textContent.trim();
+      lectureTopics[num] = newTopic;
+      // Update the corresponding cell in the calendar
+      const cell = document.querySelector(`.event-cell[data-lecture-num="${num}"] .event-text`);
+      if (cell) {
+        const baseText = `Lecture ${num}`;
+        cell.textContent = newTopic ? `${baseText}: ${newTopic}` : baseText;
+      }
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.target.blur();
+      }
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -336,6 +391,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     modal.classList.add('hidden');
     renderSchedule();
   }
+
+  // Edit handlers for lecture cells (delegated via focusout which bubbles)
+  scheduleBody.addEventListener('focusout', (e) => {
+    const eventText = e.target.closest('.event-text');
+    if (!eventText || !eventText.hasAttribute('contenteditable')) return;
+    const numAttr = eventText.getAttribute('data-lecture-num');
+    if (!numAttr) return;
+
+    const num = parseInt(numAttr);
+    const text = eventText.textContent.trim();
+    console.log('Calendar edit:', num, text);
+
+    // Parse topic - extract anything after "Lecture N" (with optional colon)
+    const match = text.match(/^Lecture\s+\d+[:\s]*(.*)$/i);
+    const topic = match ? match[1].trim() : '';
+    console.log('Parsed topic:', topic);
+    lectureTopics[num] = topic;
+
+    // Reset the cell text to proper format (with colon if topic exists)
+    const baseText = `Lecture ${num}`;
+    eventText.textContent = topic ? `${baseText}: ${topic}` : baseText;
+
+    // Update sidebar
+    const sidebarEl = document.querySelector(`.topic-text[data-lecture-num="${num}"]`);
+    console.log('Sidebar element:', sidebarEl, 'topic:', topic);
+    if (sidebarEl) {
+      sidebarEl.textContent = topic;
+    }
+  });
+
+  scheduleBody.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.closest('.event-text[contenteditable="true"]')) {
+      e.preventDefault();
+      e.target.blur();
+    }
+  });
 
   // Drop handlers on schedule table (delegated)
 
@@ -894,11 +985,13 @@ function renderSchedule() {
             const eventKey = `${dateStr}-${eventType}`;
             const isRemoved = removedEvents.has(eventKey);
             if (!isRemoved) {
+              const eventNum = eventCounters[eventType];
               dayEvents.push({
-                text: `${label} ${eventCounters[eventType]}`,
+                text: `${label} ${eventNum}`,
                 color: resolveColor(colors?.events?.[eventType]) || colors?.events?.[eventType],
                 type: eventType,
-                dateStr: dateStr
+                dateStr: dateStr,
+                num: eventNum
               });
               eventCounters[eventType]++;
             } else if (removalMode === 'skip') {
@@ -916,12 +1009,25 @@ function renderSchedule() {
           td.style.backgroundColor = dayEvents[0].color;
         }
         td.className = 'event-cell';
-        const eventTexts = dayEvents.map(e => e.text);
-        td.innerHTML = `<span class="event-text">${eventTexts.join(' / ')}</span><button class="event-remove" data-date="${dateStr}" data-types="${dayEvents.map(e => e.type).join(',')}" data-labels="${eventTexts.join(',')}">&times;</button>`;
+
+        // Check if this is a lecture-only cell (for editing support)
+        const lectureEvent = dayEvents.find(e => e.type === 'lecture');
+        if (lectureEvent && dayEvents.length === 1) {
+          const topic = lectureTopics[lectureEvent.num] || '';
+          const displayText = topic ? `${lectureEvent.text}: ${topic}` : lectureEvent.text;
+          td.dataset.lectureNum = lectureEvent.num;
+          td.innerHTML = `<span class="event-text" contenteditable="true" data-lecture-num="${lectureEvent.num}">${displayText}</span><button class="event-remove" data-date="${dateStr}" data-types="${lectureEvent.type}" data-labels="${lectureEvent.text}">&times;</button>`;
+        } else {
+          const eventTexts = dayEvents.map(e => e.text);
+          td.innerHTML = `<span class="event-text">${eventTexts.join(' / ')}</span><button class="event-remove" data-date="${dateStr}" data-types="${dayEvents.map(e => e.type).join(',')}" data-labels="${eventTexts.join(',')}">&times;</button>`;
+        }
       }
 
       eventRow.appendChild(td);
     });
     tbody.appendChild(eventRow);
   });
+
+  // Update sidebar topics summary
+  updateTopicsSummary();
 }
