@@ -17,6 +17,37 @@ let midterms = {
 };
 let removedEvents = new Set();  // stores "dateStr-eventType" keys
 let removalMode = null;  // 'shift' or 'skip' - set on first removal
+let undoStack = [];  // stores previous states for undo
+
+function saveState() {
+  undoStack.push({
+    midterms: { ...midterms },
+    removedEvents: new Set(removedEvents)
+  });
+  // Limit stack size
+  if (undoStack.length > 50) undoStack.shift();
+}
+
+function undo() {
+  if (undoStack.length === 0) return;
+  const prev = undoStack.pop();
+  midterms = prev.midterms;
+  removedEvents = prev.removedEvents;
+
+  // Update midterm button states
+  [1, 2].forEach(mt => {
+    const btn = document.querySelector(`.midterm-btn[data-midterm="${mt}"]`);
+    if (btn) {
+      if (midterms[mt]) {
+        btn.classList.add('placed');
+      } else {
+        btn.classList.remove('placed');
+      }
+    }
+  });
+
+  renderSchedule();
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load colors
@@ -74,6 +105,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+  // Undo with Cmd+Z / Ctrl+Z
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+      e.preventDefault();
+      undo();
+    }
+  });
+
   // Midterm drag-and-drop
   let draggedMidterm = null;
 
@@ -122,6 +161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   scheduleBody.addEventListener('click', (e) => {
     const label = e.target.closest('.midterm-label');
     if (label && label.dataset.midterm) {
+      saveState();
       const mt = parseInt(label.dataset.midterm);
       midterms[mt] = null;
       const btn = document.querySelector(`.midterm-btn[data-midterm="${mt}"]`);
@@ -168,6 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
+      saveState();
       types.forEach(type => {
         removedEvents.add(`${dateStr}-${type}`);
       });
@@ -191,6 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dateStr = modal.dataset.pendingDate;
     const types = modal.dataset.pendingTypes.split(',');
 
+    saveState();
     types.forEach(type => {
       removedEvents.add(`${dateStr}-${type}`);
     });
@@ -245,6 +287,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (draggedMidterm === 1 && midterms[2] && dateStr >= midterms[2]) return;
       if (draggedMidterm === 2 && midterms[1] && dateStr <= midterms[1]) return;
 
+      saveState();
       midterms[draggedMidterm] = dateStr;
       // Update button state
       const btn = document.querySelector(`.midterm-btn[data-midterm="${draggedMidterm}"]`);
