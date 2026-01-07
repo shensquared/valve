@@ -766,7 +766,7 @@ function renderSchedule() {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
             const labelHtml = labels.join('<br>');
-            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">${mt}</span>`).join(' ');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}</span>`).join(' ');
             if (labelHtml && midtermHtml) {
               td.innerHTML = labelHtml + '<br>' + midtermHtml;
             } else {
@@ -792,7 +792,7 @@ function renderSchedule() {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
             const labelHtml = labels.join('<br>');
-            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">${mt}</span>`).join(' ');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}</span>`).join(' ');
             if (labelHtml && midtermHtml) {
               td.innerHTML = labelHtml + '<br>' + midtermHtml;
             } else {
@@ -829,7 +829,7 @@ function renderSchedule() {
             if (bgColor) td.style.backgroundColor = bgColor;
             if (textColor) td.style.color = textColor;
             const labelHtml = labels.join('<br>');
-            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">${mt}</span>`).join(' ');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}</span>`).join(' ');
             if (labelHtml && midtermHtml) {
               td.innerHTML = labelHtml + '<br>' + midtermHtml;
             } else {
@@ -846,7 +846,7 @@ function renderSchedule() {
             if (textColor) td.style.color = textColor;
             // Combine labels with midterm badges
             const labelHtml = labels.join('<br>');
-            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">${mt}</span>`).join(' ');
+            const midtermHtml = dayMidterms.map(mt => `<span class="midterm-label" draggable="true" data-midterm="${mt.replace('MT', '')}">Midterm ${mt.replace('MT', '')}</span>`).join(' ');
             if (labelHtml && midtermHtml) {
               td.innerHTML = labelHtml + '<br>' + midtermHtml;
             } else {
