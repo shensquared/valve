@@ -29,7 +29,7 @@
     "gradesDueHasFinal": "High"
   },
   "holidays": {
-    "default": "mit-gray",
+    "default": "#c0c0c0",
     "Monday Schedule Shift": "High"
   },
   "date":"#4A90D9", 

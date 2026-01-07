@@ -57,8 +57,7 @@ table {
   padding: 12px 10px;
   text-align: center;
   overflow: hidden;
-  border-bottom: 1px solid #e0e0e0;
-  border-right: 1px solid #e0e0e0;
+  border-right: 2px solid silver;
 }
 
 #scheduleTable th {
@@ -86,10 +85,10 @@ table {
 }
 
 .week-header {
-  background: linear-gradient(180deg, #667788 0%, #556677 100%);
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
+  background: linear-gradient(180deg, #f8f9fa 0%, #eef0f2 100%);
+  color: black;
+  font-weight: 600;
+  font-size: 12px;
   width: 60px;
   min-width: 60px;
   max-width: 60px;
@@ -103,7 +102,11 @@ table {
   height: 32px;
   vertical-align: middle;
   color: white;
-  border-top: 3px double #999;
+  border-top: 3px double silver;
+}
+
+.date-row td.week-header {
+  color: black;
 }
 
 .label-row td {
@@ -111,14 +114,14 @@ table {
   min-height: 32px;
   height: 32px;
   vertical-align: middle;
-  background: #fafbfc;
+  background: white;
 }
 
 .label-row td.week-header {
-  background: linear-gradient(180deg, #667788 0%, #556677 100%);
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
+  background: linear-gradient(180deg, #f8f9fa 0%, #eef0f2 100%);
+  color: black;
+  font-weight: 600;
+  font-size: 12px;
 }
 
 .event-row td {
@@ -129,7 +132,6 @@ table {
   vertical-align: middle;
   background: white;
   color: white;
-  border-radius: 4px;
 }
 
 .controls {
