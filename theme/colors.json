@@ -22,11 +22,11 @@
     "dropDate": "Medium",
     "lastDueHasFinal": "Medium",
     "lastDueDate": "Medium",
-    "lastClassDate": "High",
+    "lastClassDate": "Medium",
     "finalPeriodStart": "Medium",
     "finalPeriodEnd": "Medium",
-    "gradesDueNoFinal": "High",
-    "gradesDueHasFinal": "High"
+    "gradesDueNoFinal": "Medium",
+    "gradesDueHasFinal": "Medium"
   },
   "holidays": {
     "default": "#c0c0c0",

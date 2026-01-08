@@ -821,7 +821,7 @@ function renderSchedule() {
       // Mark final exam period (only if class has a final)
       if (inFinals && hasFinal) {
         labels.push('Finals');
-        if (!bgColor) bgColor = '#fff3cd';  // Light yellow for finals
+        if (!textColor) textColor = '#662D91';  // EECS purple for finals
       }
 
       // Check date labels for High (bg) or Medium (text)
@@ -932,6 +932,7 @@ function renderSchedule() {
         weekTd.className = 'week-header';
         weekTd.rowSpan = 1;
         weekTd.textContent = '-';
+        weekTd.style.borderTop = '3px double #999';
         labelRow.appendChild(weekTd);
 
         // Get date range from first and last day of week
@@ -944,6 +945,7 @@ function renderSchedule() {
         td.colSpan = 5;
         td.textContent = `Spring Break (${startStr} - ${endStr})`;
         td.style.backgroundColor = getHolidayColor({ name: 'Spring Break' });
+        td.style.borderTop = '3px double #999';
         labelRow.appendChild(td);
       } else if (isThanksgivingWeek) {
         // Render Mon-Wed normally, merge Thu-Fri for Thanksgiving
@@ -1006,7 +1008,7 @@ function renderSchedule() {
         } else {
           td.textContent = 'Finals Period';
         }
-        td.style.backgroundColor = '#fff3cd';
+        td.style.color = '#662D91';  // EECS purple for finals
         labelRow.appendChild(td);
 
         // Days after finals (if any in same week)
