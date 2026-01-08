@@ -4,6 +4,16 @@
   padding: 0;
 }
 
+.dev-banner {
+  background: #E8927C;
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  margin: -30px -30px 20px -30px;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
