@@ -14,10 +14,14 @@ Why the name? [Hydrant](https://hydrant.mit.edu) helps students pick classes. Va
 - **Lecture Topics**: Manage and reorder topics via drag-and-drop or paste from a list
 - **Academic Calendar**: Automatically handles holidays, breaks, and finals periods
 - **Save/Load**: Export and import configurations as JSON
+- [ ] List view
+- [ ] iCal/Google Calendar export
+- [ ] Canvas/CAT-SOOP sync
+- [ ] Section-based alternative scheduling
 
 ## Usage
 
-1. Open `index.html` in a browser
+1. Go to [shenshen.mit.edu/valve](https://shenshen.mit.edu/valve/)
 2. Select a semester from the dropdown
 3. Choose which days your class meets for each event type
 4. Drag midterms to their dates
