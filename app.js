@@ -1128,3 +1128,16 @@ function renderSchedule() {
   // Update sidebar topics summary
   updateTopicsSummary();
 }
+
+// Set last updated date
+document.addEventListener('DOMContentLoaded', () => {
+  const lastUpdatedEl = document.getElementById('lastUpdated');
+  if (lastUpdatedEl) {
+    const now = new Date();
+    lastUpdatedEl.textContent = now.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+});

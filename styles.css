@@ -605,6 +605,12 @@ table {
   margin-top: 24px;
   color: #666;
   font-size: 13px;
+  position: relative;
+}
+
+.footer-left {
+  position: absolute;
+  left: 16px;
 }
 
 .footer a {
