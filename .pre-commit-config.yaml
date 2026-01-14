@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: update-last-updated
+        name: Update Last Updated Date
+        entry: python3 hooks/update_date.py
+        language: system
+        files: ^app\.js$
+        pass_filenames: false

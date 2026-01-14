@@ -43,3 +43,18 @@ valve/
 ## Tech Stack
 
 Vanilla HTML/CSS/JavaScript with no dependencies. Python scripts for data validation.
+
+The "Last Updated" footer is automatically set by a git pre-commit hook.
+
+## Development Setup
+
+To set up the pre-commit hooks (auto-updates the "Last Updated" date):
+
+```bash
+# Install pre-commit (one-time)
+brew install pre-commit  # macOS
+# or: pip install pre-commit  # other platforms
+
+# Install the hooks (one-time per clone)
+pre-commit install
+```

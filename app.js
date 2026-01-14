@@ -1,3 +1,5 @@
+const LAST_UPDATED = 'Jan 14, 2026';  // Replaced by git hook
+
 const semesterFiles = [
   { key: 'spring26', path: 'semesters/spring26.json' },
   { key: 'fall25', path: 'semesters/fall25.json' }
@@ -1133,11 +1135,6 @@ function renderSchedule() {
 document.addEventListener('DOMContentLoaded', () => {
   const lastUpdatedEl = document.getElementById('lastUpdated');
   if (lastUpdatedEl) {
-    const now = new Date();
-    lastUpdatedEl.textContent = now.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    lastUpdatedEl.textContent = LAST_UPDATED;
   }
 });
