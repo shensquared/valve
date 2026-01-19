@@ -1,4 +1,4 @@
-const LAST_UPDATED = 'Jan 14, 2026';  // Replaced by git hook
+const LAST_UPDATED = 'Jan 19, 2026';  // Replaced by git hook
 
 const semesterFiles = [
   { key: 'spring26', path: 'semesters/spring26.json' },
