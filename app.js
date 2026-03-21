@@ -1,6 +1,7 @@
-const LAST_UPDATED = 'Jan 19, 2026';  // Replaced by git hook
+const LAST_UPDATED = 'Mar 21, 2026';  // Replaced by git hook
 
 const semesterFiles = [
+  { key: 'fall26', path: 'semesters/fall26.json' },
   { key: 'spring26', path: 'semesters/spring26.json' },
   { key: 'fall25', path: 'semesters/fall25.json' }
 ];
@@ -21,6 +22,11 @@ let removedEvents = new Set();  // stores "dateStr-eventType" keys
 let removalMode = null;  // 'shift' or 'skip' - set on first removal
 let undoStack = [];  // stores previous states for undo
 let lectureTopics = {};  // stores { 1: "topic1", 2: "topic2", ... }
+let labTopics = {};  // stores { 1: "topic1", 2: "topic2", ... }
+let recitationTopics = {};  // stores { 1: "topic1", 2: "topic2", ... }
+let customLabels = {};  // stores custom labels like { "lab-5": "5a", "recitation-3": "3b" }
+let skippedCounters = { lecture: [], lab: [], recitation: [] };  // stores which counter values to skip
+
 
 function saveState() {
   undoStack.push({
@@ -69,7 +75,11 @@ function saveCalendarState() {
     midterms: midterms,
     removedEvents: Array.from(removedEvents),
     removalMode: removalMode,
-    lectureTopics: lectureTopics
+    lectureTopics: lectureTopics,
+    labTopics: labTopics,
+    recitationTopics: recitationTopics,
+    customLabels: customLabels,
+    skippedCounters: skippedCounters
   };
 
   const json = JSON.stringify(state, null, 2);
@@ -84,6 +94,71 @@ function saveCalendarState() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+async function exportToGoogleSheets() {
+  if (!currentSemester) {
+    alert('No semester loaded');
+    return;
+  }
+
+  const table = document.getElementById('scheduleTable');
+
+  // Create a temporary container to hold the cloned table with inline styles
+  const tempDiv = document.createElement('div');
+  const clonedTable = table.cloneNode(true);
+
+  // Apply inline styles to preserve colors
+  const originalCells = table.querySelectorAll('th, td');
+  const clonedCells = clonedTable.querySelectorAll('th, td');
+
+  originalCells.forEach((cell, i) => {
+    const computedStyle = window.getComputedStyle(cell);
+    const bgColor = computedStyle.backgroundColor;
+    const textColor = computedStyle.color;
+
+    if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+      clonedCells[i].style.backgroundColor = bgColor;
+    }
+    if (textColor) {
+      clonedCells[i].style.color = textColor;
+    }
+
+    // Add border and padding for better visibility
+    clonedCells[i].style.border = '1px solid #ddd';
+    clonedCells[i].style.padding = '8px';
+  });
+
+  tempDiv.appendChild(clonedTable);
+  document.body.appendChild(tempDiv);
+
+  try {
+    // Copy HTML to clipboard using modern Clipboard API
+    const html = clonedTable.outerHTML;
+    const text = clonedTable.innerText;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const textBlob = new Blob([text], { type: 'text/plain' });
+
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': blob,
+        'text/plain': textBlob
+      })
+    ]);
+
+    document.body.removeChild(tempDiv);
+
+    // Open Google Sheets in new tab
+    const sheetsUrl = 'https://docs.google.com/spreadsheets/create';
+    window.open(sheetsUrl, '_blank');
+
+    alert('Table copied to clipboard!\n\nA new Google Sheet has been opened.\nJust click on cell A1 and paste (Cmd+V or Ctrl+V) to import your schedule with colors.');
+  } catch (err) {
+    console.error('Copy failed:', err);
+    document.body.removeChild(tempDiv);
+    alert('Failed to copy table. Please try selecting and copying the table manually.');
+  }
 }
 
 function loadCalendarState(state) {
@@ -119,8 +194,12 @@ function loadCalendarState(state) {
   removedEvents = new Set(state.removedEvents || []);
   removalMode = state.removalMode || null;
 
-  // Restore lecture topics
+  // Restore topics
   lectureTopics = state.lectureTopics || {};
+  labTopics = state.labTopics || {};
+  recitationTopics = state.recitationTopics || {};
+  customLabels = state.customLabels || {};
+  skippedCounters = state.skippedCounters || {};
 
   // Clear undo stack
   undoStack = [];
@@ -152,12 +231,47 @@ function updateTopicsSummary() {
   container.innerHTML = lectureNums.map(num => `
     <div class="topic-item" data-lecture-num="${num}">
       <span class="drag-handle">⋮⋮</span>
-      <span class="topic-num">Lecture ${num}:</span>
+      <span class="topic-num" contenteditable="true" data-lecture-num="${num}">Lecture ${num}:</span>
       <span class="topic-text" contenteditable="true" data-lecture-num="${num}">${lectureTopics[num] || ''}</span>
     </div>
   `).join('');
 
-  // Add event listeners for editing in sidebar
+  // Add event listeners for editing lecture number
+  container.querySelectorAll('.topic-num').forEach(el => {
+    el.addEventListener('blur', (e) => {
+      const oldNum = parseInt(e.target.dataset.lectureNum);
+      const text = e.target.textContent.trim();
+      const match = text.match(/\d+/);
+
+      if (!match) {
+        // Invalid input, restore original
+        e.target.textContent = `Lecture ${oldNum}:`;
+        return;
+      }
+
+      const newNum = parseInt(match[0]);
+      if (newNum === oldNum || newNum < 1) {
+        // No change or invalid number
+        e.target.textContent = `Lecture ${oldNum}:`;
+        return;
+      }
+
+      // Renumber: move oldNum to newNum
+      const topic = lectureTopics[oldNum];
+      delete lectureTopics[oldNum];
+      lectureTopics[newNum] = topic || '';
+
+      renderSchedule();
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.target.blur();
+      }
+    });
+  });
+
+  // Add event listeners for editing topic text in sidebar
   container.querySelectorAll('.topic-text').forEach(el => {
     el.addEventListener('blur', (e) => {
       const num = parseInt(e.target.dataset.lectureNum);
@@ -316,7 +430,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Save button
   document.getElementById('saveBtn').addEventListener('click', saveCalendarState);
 
-  // Apply pasted topics
+  // Export to Google Sheets button
+  const exportBtn = document.getElementById('exportGoogleSheetBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportToGoogleSheets);
+  }
+
+  // Apply pasted lecture topics
   document.getElementById('applyPasteBtn').addEventListener('click', () => {
     const textarea = document.getElementById('pasteInput');
     const text = textarea.value.trim();
@@ -492,29 +612,79 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderSchedule();
   }
 
-  // Edit handlers for lecture cells (delegated via focusout which bubbles)
+  // Edit handlers for event cells (delegated via focusout which bubbles)
   scheduleBody.addEventListener('focusout', (e) => {
     const eventText = e.target.closest('.event-text');
     if (!eventText || !eventText.hasAttribute('contenteditable')) return;
-    const numAttr = eventText.getAttribute('data-lecture-num');
-    if (!numAttr) return;
 
-    const num = parseInt(numAttr);
+    const eventType = eventText.getAttribute('data-event-type');
+    const eventNum = eventText.getAttribute('data-event-num');
+    if (!eventType || !eventNum) {
+      console.log('Missing attributes:', { eventType, eventNum, element: eventText });
+      return;
+    }
+
+    const num = eventNum;  // Keep as string to support "10a", "10b", etc.
     const text = eventText.textContent.trim();
 
-    // Parse topic - extract anything after "Lecture N" (with optional colon)
-    const match = text.match(/^Lecture\s+\d+[:\s]*(.*)$/i);
-    const topic = match ? match[1].trim() : '';
-    lectureTopics[num] = topic;
+    // Get the appropriate topics map
+    const topicsMap = { lecture: lectureTopics, lab: labTopics, recitation: recitationTopics };
+    const topics = topicsMap[eventType];
+    if (!topics) {
+      console.log('No topics map for:', eventType);
+      return;
+    }
 
-    // Reset the cell text to proper format (with colon if topic exists)
-    const baseText = `Lecture ${num}`;
-    eventText.textContent = topic ? `${baseText}: ${topic}` : baseText;
+    // Parse to extract new number and topic
+    // Format: "Lecture 5" or "Lab 3a: Topic" or "Recitation 2b: Description"
+    const label = eventType.charAt(0).toUpperCase() + eventType.slice(1);
+    const regex = new RegExp(`^${label}\\s+(\\d+[a-z]?)[:\\s]*(.*)$`, 'i');
+    const match = text.match(regex);
 
-    // Update sidebar
-    const sidebarEl = document.querySelector(`.topic-text[data-lecture-num="${num}"]`);
-    if (sidebarEl) {
-      sidebarEl.textContent = topic;
+    if (match) {
+      const newNum = match[1];  // Keep as string to preserve letters like "10a"
+      const topic = match[2].trim();
+
+      // Check if this is a renumber (different base number) vs just adding suffix (10 -> 10a)
+      const oldBaseNum = parseInt(num);
+      const newBaseNum = parseInt(newNum);
+      const isRenumber = newBaseNum !== oldBaseNum;
+      const hasSuffix = newNum !== newBaseNum.toString();
+
+      // Store the custom label and topic
+      topics[num] = topic;
+
+      // Store custom label if it's different from the base number
+      const labelKey = `${eventType}-${num}`;
+      if (newNum !== num.toString()) {
+        customLabels[labelKey] = newNum;
+
+        // If this is an insertion (e.g., 11 -> 10b), mark the old position to be skipped
+        if (hasSuffix && newBaseNum < oldBaseNum) {
+          if (!skippedCounters[eventType]) {
+            skippedCounters[eventType] = [];
+          }
+          if (!skippedCounters[eventType].includes(oldBaseNum)) {
+            skippedCounters[eventType].push(oldBaseNum);
+            skippedCounters[eventType].sort((a, b) => a - b);
+          }
+        }
+      } else {
+        delete customLabels[labelKey];  // Remove custom label if reverted to plain number
+      }
+
+      const baseText = `${label} ${newNum}`;
+      eventText.textContent = topic ? `${baseText}: ${topic}` : baseText;
+
+      // Update sidebar (only lectures have sidebar)
+      if (eventType === 'lecture') {
+        const sidebarEl = document.querySelector(`.topic-text[data-lecture-num="${num}"]`);
+        if (sidebarEl) {
+          sidebarEl.textContent = topic;
+        }
+      }
+    } else {
+      console.log('No regex match for:', text, 'with label:', label);
     }
   });
 
@@ -1084,7 +1254,14 @@ function renderSchedule() {
             const eventKey = `${dateStr}-${eventType}`;
             const isRemoved = removedEvents.has(eventKey);
             if (!isRemoved) {
-              const eventNum = eventCounters[eventType];
+              let eventNum = eventCounters[eventType];
+
+              // Skip numbers that are in the skipped list (for insertions like 10b)
+              while (skippedCounters[eventType] && skippedCounters[eventType].includes(eventNum)) {
+                eventNum++;
+                eventCounters[eventType] = eventNum;
+              }
+
               dayEvents.push({
                 text: `${label} ${eventNum}`,
                 color: resolveColor(colors?.events?.[eventType]) || colors?.events?.[eventType],
@@ -1109,14 +1286,26 @@ function renderSchedule() {
         }
         td.className = 'event-cell';
 
-        // Check if this is a lecture-only cell (for editing support)
-        const lectureEvent = dayEvents.find(e => e.type === 'lecture');
-        if (lectureEvent && dayEvents.length === 1) {
-          const topic = lectureTopics[lectureEvent.num] || '';
-          const displayText = topic ? `${lectureEvent.text}: ${topic}` : lectureEvent.text;
-          td.dataset.lectureNum = lectureEvent.num;
-          td.innerHTML = `<span class="event-text" contenteditable="true" data-lecture-num="${lectureEvent.num}">${displayText}</span><button class="event-remove" data-date="${dateStr}" data-types="${lectureEvent.type}" data-labels="${lectureEvent.text}">&times;</button>`;
+        // Single event cell - make editable
+        if (dayEvents.length === 1) {
+          const event = dayEvents[0];
+          const topicsMap = { lecture: lectureTopics, lab: labTopics, recitation: recitationTopics };
+          const topics = topicsMap[event.type] || {};
+          const topic = topics[event.num] || '';
+
+          // Check for custom label (e.g., "10a" instead of "10")
+          const labelKey = `${event.type}-${event.num}`;
+          const customLabel = customLabels[labelKey];
+          const displayNum = customLabel || event.num;
+          const label = event.type.charAt(0).toUpperCase() + event.type.slice(1);
+          const baseText = `${label} ${displayNum}`;
+          const displayText = topic ? `${baseText}: ${topic}` : baseText;
+
+          td.dataset[`${event.type}Num`] = event.num;
+          console.log('Creating editable cell:', event.type, event.num, displayText);
+          td.innerHTML = `<span class="event-text" contenteditable="true" data-event-type="${event.type}" data-event-num="${event.num}">${displayText}</span><button class="event-remove" data-date="${dateStr}" data-types="${event.type}" data-labels="${event.text}">&times;</button>`;
         } else {
+          // Multiple events - not editable for now
           const eventTexts = dayEvents.map(e => e.text);
           td.innerHTML = `<span class="event-text">${eventTexts.join(' / ')}</span><button class="event-remove" data-date="${dateStr}" data-types="${dayEvents.map(e => e.type).join(',')}" data-labels="${eventTexts.join(',')}">&times;</button>`;
         }

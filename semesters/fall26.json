@@ -1,0 +1,35 @@
+{
+  "name": "Fall 2026",
+  "firstMonday": "2026-09-07",
+  "startDate": "2026-09-09",
+  "addDate": "2026-10-09",
+  "dropDate": "2026-11-18",
+  "lastDueHasFinal": "2026-12-04",
+  "lastClassDate": "2026-12-10",
+  "finalPeriodStart": "2026-12-14",
+  "finalPeriodEnd": "2026-12-18",
+  "gradesDueNoFinal": "2026-12-15",
+  "gradesDueHasFinal": "2027-01-06",
+  "holidays": [
+    {
+      "date": "2026-10-12",
+      "name": "Indigenous Peoples' Day"
+    },
+    {
+      "date": "2026-10-13",
+      "name": "Monday Schedule Shift"
+    },
+    {
+      "date": "2026-11-11",
+      "name": "Veterans Day"
+    },
+    {
+      "date": "2026-11-26",
+      "name": "Thanksgiving Holiday"
+    },
+    {
+      "date": "2026-11-27",
+      "name": "Thanksgiving Holiday"
+    }
+  ]
+}
