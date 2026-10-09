@@ -9,5 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger deploy webhook
+        env:
+          SECRET: ${{ secrets.VALVE_DEPLOY_SECRET }}
         run: |
-          curl -X POST https://shenshen.mit.edu/hooks/valve-deploy
+          body='{}'
+          sig=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $NF}')
+          curl -sS --fail-with-body -X POST \
+            -H 'Content-Type: application/json' \
+            -H "X-Hub-Signature-256: sha256=$sig" \
+            -d "$body" \
+            https://shenshen.mit.edu/hooks/valve-deploy
