@@ -1,0 +1,35 @@
+{
+  "name": "Spring 2027",
+  "firstMonday": "2027-02-01",
+  "startDate": "2027-02-01",
+  "addDate": "2027-03-05",
+  "dropDate": "2027-04-20",
+  "lastDueHasFinal": "2027-05-07",
+  "lastClassDate": "2027-05-11",
+  "finalPeriodStart": "2027-05-14",
+  "finalPeriodEnd": "2027-05-19",
+  "gradesDueNoFinal": "2027-05-14",
+  "gradesDueHasFinal": "2027-05-21",
+  "holidays": [
+    {
+      "date": "2027-02-15",
+      "name": "Presidents' Day"
+    },
+    {
+      "date": "2027-02-16",
+      "name": "Monday Schedule Shift"
+    },
+    {
+      "date": "2027-03-22",
+      "name": "Spring Break Start"
+    },
+    {
+      "date": "2027-03-26",
+      "name": "Spring Break End"
+    },
+    {
+      "date": "2027-04-19",
+      "name": "Patriots' Day"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
-const LAST_UPDATED = 'Mar 21, 2026';  // Replaced by git hook
+const LAST_UPDATED = 'Oct 9, 2026';  // Replaced by git hook
 
 const semesterFiles = [
+  { key: 'spring27', path: 'semesters/spring27.json' },
   { key: 'fall26', path: 'semesters/fall26.json' },
   { key: 'spring26', path: 'semesters/spring26.json' },
   { key: 'fall25', path: 'semesters/fall25.json' }
